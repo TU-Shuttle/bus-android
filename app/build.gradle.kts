@@ -46,4 +46,13 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
+    // Retrofit
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+
+    // Gson Converter (JSON 직렬화/역직렬화용)
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+
+    // OkHttp Logging (네트워크 로그 디버깅용, 선택 사항)
+    implementation("com.squareup.okhttp3:logging-interceptor:4.9.3")
 }
