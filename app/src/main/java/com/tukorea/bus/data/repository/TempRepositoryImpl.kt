@@ -1,7 +1,7 @@
 package com.tukorea.bus.data.repository
 
 import com.tukorea.bus.data.api.ApiService
-import com.tukorea.bus.data.model.TempListResponse
+import com.tukorea.bus.data.model.TempResponse
 import com.tukorea.bus.domain.model.Temp
 import com.tukorea.bus.domain.repository.TempRepository
 import javax.inject.Inject
@@ -12,7 +12,7 @@ class TempRepositoryImpl @Inject constructor(
     private val api: ApiService
 ) : TempRepository {
     override suspend fun getTemps(): List<Temp> {
-        val response: TempListResponse = api.getTemps()
-        return response.toDomain()
+        val response: TempResponse = api.getTemps()
+        return response.data
     }
 }
