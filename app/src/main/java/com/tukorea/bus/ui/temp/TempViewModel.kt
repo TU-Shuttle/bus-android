@@ -2,9 +2,7 @@ package com.tukorea.bus.ui.temp
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.tukorea.bus.data.model.TempResponse
-import com.tukorea.bus.data.repository.TempRepository
-import com.tukorea.bus.util.Resource
+import com.tukorea.bus.domain.usecase.GetTempListUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,16 +11,21 @@ import javax.inject.Inject
 
 @HiltViewModel
 class TempViewModel @Inject constructor(
-    private val repo: TempRepository
+    private val getTempListUseCase: GetTempListUseCase
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow<Resource<List<TempResponse>>>(Resource.Loading)
-    val state: StateFlow<Resource<List<TempResponse>>> = _state
+    private val _state = MutableStateFlow(TempUiState())
+    val state: StateFlow<TempUiState> = _state
 
     fun loadTemps() {
         viewModelScope.launch {
-            _state.value = Resource.Loading
-            _state.value = repo.getTemps()
+            _state.value = TempUiState(isLoading = true)
+            try {
+                val temps = getTempListUseCase()
+                _state.value = TempUiState(temps = temps)
+            } catch (e: Exception) {
+                _state.value = TempUiState(error = e.message ?: "Unknown error")
+            }
         }
     }
 }
