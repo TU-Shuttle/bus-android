@@ -10,7 +10,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.tukorea.bus.databinding.FragmentTempBinding
-import com.tukorea.bus.util.Resource
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -28,20 +27,15 @@ class TempFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        binding.btnLoad.setOnClickListener { vm.loadTemps() } // ViewModel 메서드 변경
+        binding.btnLoad.setOnClickListener { vm.loadTemps() }
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                vm.state.collectLatest { res ->
-                    when (res) {
-                        is Resource.Loading -> binding.textResult.text = "로딩 중..."
-                        is Resource.Success -> {
-                            val tempsText = res.data.joinToString("\n") { it.temp }
-                            binding.textResult.text = tempsText
-                        }
-                        is Resource.Error -> {
-                            binding.textResult.text = "에러: ${res.message}"
-                        }
+                vm.state.collectLatest { state ->
+                    binding.textResult.text = when {
+                        state.isLoading -> "로딩 중..."
+                        state.error != null -> "에러: ${state.error}"
+                        else -> state.temps.joinToString("\n") { it.temp }
                     }
                 }
             }

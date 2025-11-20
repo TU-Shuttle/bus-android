@@ -1,9 +1,9 @@
 package com.tukorea.bus.data.api
 
-import com.tukorea.bus.data.model.TempListResponse
+import com.tukorea.bus.data.model.TempResponse
 import retrofit2.http.GET
 
 interface ApiService {
     @GET("/api/temps") // GET /temp
-    suspend fun getTemps(): TempListResponse
+    suspend fun getTemps(): TempResponse
 }

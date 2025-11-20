@@ -1,4 +1,4 @@
-package com.tukorea.bus.data.model
+package com.tukorea.bus.domain.model
 
 data class Temp(
     val temp: String
