@@ -1,10 +1,10 @@
-package com.tukorea.bus
+package com.tukorea.bus.ui.main
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.tukorea.bus.databinding.ActivityMainBinding
-import dagger.hilt.android.AndroidEntryPoint
 import com.tukorea.bus.ui.temp.TempFragment
+import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
