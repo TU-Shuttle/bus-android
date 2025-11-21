@@ -80,4 +80,7 @@ dependencies {
     /* Fragment */
     implementation(libs.androidx.fragment.ktx)
     implementation(libs.androidx.activity.ktx)
+
+    /* SplashScreen */
+    implementation(libs.androidx.core.splashscreen)
 }
