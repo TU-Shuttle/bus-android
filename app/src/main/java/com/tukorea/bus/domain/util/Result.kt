@@ -1,5 +1,8 @@
 package com.tukorea.bus.domain.util
 
+import com.tukorea.bus.domain.error.AppError
+import com.tukorea.bus.domain.error.MapError
+
 /**
  * 비즈니스 로직의 실행 결과를 나타내는 sealed class
  * Domain 레이어에서 사용하여 성공/실패를 명시적으로 표현합니다.
@@ -26,6 +29,6 @@ sealed class Result<out T, out E> {
     }
 }
 
-typealias AppResult<T> = Result<T, com.tukorea.bus.domain.error.AppError>
-typealias MapResult<T> = Result<T, com.tukorea.bus.domain.error.MapError>
+typealias AppResult<T> = Result<T, AppError>
+typealias MapResult<T> = Result<T, MapError>
 
