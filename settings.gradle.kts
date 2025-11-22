@@ -16,9 +16,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven {
-            url = uri("https://maven.navercorp.com/repository/maven-public/")
-        }
+        maven("https://repository.map.naver.com/archive/maven")
     }
 }
 
