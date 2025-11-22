@@ -1,9 +1,18 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
 
     id("kotlin-kapt")
     id("com.google.dagger.hilt.android")
+}
+
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(FileInputStream(localPropertiesFile))
 }
 
 android {
@@ -20,6 +29,9 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        val naverMapClientId = localProperties.getProperty("naver.map.client.id") ?: ""
+        manifestPlaceholders["naverMapClientId"] = naverMapClientId
     }
 
     buildTypes {
@@ -83,4 +95,7 @@ dependencies {
 
     /* SplashScreen */
     implementation(libs.androidx.core.splashscreen)
+
+    /* Naver Map SDK */
+    implementation(libs.naver.map.sdk)
 }
