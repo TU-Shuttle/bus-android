@@ -98,4 +98,7 @@ dependencies {
 
     /* Naver Map SDK */
     implementation(libs.naver.map.sdk)
+
+    /* Google Play Services Location */
+    implementation(libs.play.services.location)
 }
