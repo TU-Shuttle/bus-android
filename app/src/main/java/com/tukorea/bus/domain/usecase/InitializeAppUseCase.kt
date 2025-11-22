@@ -1,12 +1,26 @@
 package com.tukorea.bus.domain.usecase
 
+import com.tukorea.bus.domain.error.AppError
+import com.tukorea.bus.domain.util.AppResult
+import com.tukorea.bus.domain.util.Result
+import kotlinx.coroutines.delay
 import javax.inject.Inject
 
 class InitializeAppUseCase @Inject constructor() {
-    
-    suspend operator fun invoke() {
-        // TODO:  초기화 로직 추가
 
+    /**
+     * 앱 초기화를 수행합니다.
+     *
+     * @return 성공 시 Unit, 실패 시 에러를 포함한 Result
+     */
+    suspend operator fun invoke(): AppResult<Unit> {
+        return try {
+            delay(1000L)
+            // TODO: 초기화 로직 추가
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error(AppError.CustomError(e.message))
+        }
     }
 }
 

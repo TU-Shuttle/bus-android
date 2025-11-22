@@ -3,8 +3,8 @@ package com.tukorea.bus.ui.splash
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tukorea.bus.domain.usecase.InitializeAppUseCase
+import com.tukorea.bus.domain.util.Result
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -20,15 +20,19 @@ class SplashViewModel @Inject constructor(
 
     fun initialize() {
         viewModelScope.launch {
-            try {
-                delay(1000L)
-                initializeAppUseCase()
-                _state.value = _state.value.copy(isInitialized = true)
-            } catch (e: Exception) {
-                _state.value = _state.value.copy(
-                    error = e.message ?: "Initialization failed",
-                    isInitialized = true
-                )
+            when (val result = initializeAppUseCase()) {
+                is Result.Success -> {
+                    _state.value = _state.value.copy(
+                        isInitialized = true,
+                        error = null
+                    )
+                }
+                is Result.Error -> {
+                    _state.value = _state.value.copy(
+                        isInitialized = true,
+                        error = result.error.getMessage()
+                    )
+                }
             }
         }
     }
