@@ -20,6 +20,7 @@ import com.tukorea.bus.databinding.FragmentMapBinding
 import android.widget.Toast
 import com.tukorea.bus.domain.util.LocationUtils
 import com.naver.maps.map.LocationTrackingMode
+import com.tukorea.bus.domain.model.MapLocation
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -32,7 +33,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
     private val vm: MapViewModel by viewModels()
     private var naverMap: NaverMap? = null
     private lateinit var locationSource: FusedLocationSource
-    private var lastUpdatedLocation: com.tukorea.bus.domain.model.MapLocation? = null
+    private var lastUpdatedLocation: MapLocation? = null
     
     companion object {
         private const val LOCATION_PERMISSION_REQUEST_CODE = 1000
