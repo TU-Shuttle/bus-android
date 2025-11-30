@@ -1,18 +1,28 @@
-import java.util.Properties
-import java.io.FileInputStream
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
 
     id("kotlin-kapt")
     id("com.google.dagger.hilt.android")
 }
 
-val localProperties = Properties()
-val localPropertiesFile = rootProject.file("local.properties")
-if (localPropertiesFile.exists()) {
-    localProperties.load(FileInputStream(localPropertiesFile))
+// .env
+val envFile = rootProject.file(".env")
+val envVars = mutableMapOf<String, String>()
+
+if (envFile.exists()) {
+    envFile.readLines().forEach { line ->
+        val trimmed = line.trim()
+        if (trimmed.isNotEmpty() && !trimmed.startsWith("#") && trimmed.contains("=")) {
+            val (key, value) = trimmed.split("=", limit = 2)
+            envVars[key.trim()] = value.trim()
+        }
+    }
+}
+
+fun getEnv(key: String): String {
+    return envVars[key] ?: System.getenv(key) ?: ""
 }
 
 android {
@@ -29,9 +39,7 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-        val naverMapClientId = localProperties.getProperty("naver.map.client.id") ?: ""
-        manifestPlaceholders["naverMapClientId"] = naverMapClientId
+        manifestPlaceholders["naverMapClientId"] = getEnv("NAVER_MAP_CLIENT_ID")
     }
 
     buildTypes {
@@ -51,20 +59,34 @@ android {
         jvmTarget = "17"
     }
     buildFeatures {
-        viewBinding = true
+        compose = true
     }
 }
 
 dependencies {
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
     implementation(libs.androidx.annotation)
     implementation(libs.material)
-    implementation(libs.androidx.activity)
-    implementation(libs.androidx.constraintlayout)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
+    // Compose
+    implementation(platform(libs.compose.bom))
+    implementation(libs.compose.ui)
+    implementation(libs.compose.ui.graphics)
+    implementation(libs.compose.ui.tooling.preview)
+    implementation(libs.compose.material3)
+    implementation(libs.compose.runtime)
+    implementation(libs.compose.foundation)
+    implementation(libs.compose.activity)
+    implementation(libs.compose.viewmodel)
+    implementation(libs.compose.runtime.livedata)
+    implementation(libs.compose.navigation)
+    implementation(libs.compose.material.icons.extended)
+    implementation(libs.hilt.navigation.compose)
+    implementation(libs.accompanist.permissions)
+    debugImplementation(libs.compose.ui.tooling)
 
     // Retrofit
     implementation(libs.retrofit)
@@ -90,10 +112,6 @@ dependencies {
     /* Hilt */
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)
-
-    /* Fragment */
-    implementation(libs.androidx.fragment.ktx)
-    implementation(libs.androidx.activity.ktx)
 
     /* SplashScreen */
     implementation(libs.androidx.core.splashscreen)
