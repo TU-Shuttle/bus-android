@@ -4,6 +4,7 @@ import android.Manifest
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,6 +29,17 @@ import com.tukorea.bus.ui.map.MapViewModel
 import com.tukorea.bus.ui.map.NaverMapView
 import com.tukorea.bus.ui.navigation.Screen
 import com.tukorea.bus.ui.theme.*
+import kotlinx.coroutines.launch
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.unit.IntOffset
+import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
+
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
@@ -51,20 +63,34 @@ fun RideScreen(
     LaunchedEffect(locationPermissionsState.allPermissionsGranted) {
         if (locationPermissionsState.allPermissionsGranted) {
             mapViewModel.onLocationPermissionGranted()
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        if (locationPermissionsState.allPermissionsGranted) {
             mapViewModel.loadCurrentLocation()
         }
     }
 
-    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     val density = LocalDensity.current
-    val modalHeight = screenHeight * 0.4f
+    val scope = rememberCoroutineScope()
+
+    var sheetHeightPx by remember { mutableStateOf(0f) }
+
+    val peekHeightPx = with(density) { 96.dp.toPx() }
+
+    val expandedOffsetPx = with(density) { 32.dp.toPx() }
+
+    val collapsedOffsetPx = remember(sheetHeightPx, peekHeightPx, expandedOffsetPx) {
+        (sheetHeightPx - peekHeightPx)
+            .coerceAtLeast(expandedOffsetPx)
+    }
+
+    var sheetOffset by remember { mutableStateOf(collapsedOffsetPx) }
+
+    val draggableState = rememberDraggableState { delta ->
+        val newOffset = (sheetOffset + delta)
+            .coerceIn(expandedOffsetPx, collapsedOffsetPx)
+        sheetOffset = newOffset
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
+
         NaverMapView(
             modifier = Modifier.fillMaxSize(),
             currentLocation = mapState.currentLocation,
@@ -74,36 +100,15 @@ fun RideScreen(
                     mapViewModel.loadCurrentLocation()
                 }
             },
-            bottomPadding = with(density) {
-                (modalHeight.toPx()).toInt()
-            },
-            onMapInitialized = { naverMap ->
-            }
+            bottomPadding = with(LocalDensity.current) { 260.dp.toPx().toInt() },
+            onMapInitialized = { }
         )
-
-        FloatingActionButton(
-            onClick = { onNavigateTo(Screen.Home.route) },
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(16.dp)
-                .statusBarsPadding(),
-            containerColor = White,
-            elevation = FloatingActionButtonDefaults.elevation(4.dp),
-            shape = CircleShape
-        ) {
-            Icon(
-                imageVector = Icons.Default.Home,
-                contentDescription = "홈",
-                tint = Gray700
-            )
-        }
 
         FloatingActionButton(
             onClick = { mapViewModel.loadCurrentLocation() },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(16.dp)
-                .padding(bottom = with(density) { (modalHeight.toPx()).toInt().dp + 16.dp }),
+                .padding(16.dp),
             containerColor = White,
             elevation = FloatingActionButtonDefaults.elevation(4.dp),
             shape = CircleShape
@@ -115,18 +120,60 @@ fun RideScreen(
             )
         }
 
-        RideInfoModal(
-            remainingMinutes = remainingMinutes,
-            departureStation = uiState.departureStation,
-            departureTime = uiState.departureTime,
-            arrivalStation = uiState.arrivalStation,
-            arrivalTime = uiState.arrivalTime,
-            busStatus = busStatus,
-            onBoardingStationClick = { /* TODO: 탑승 정류장 표시 기능 구현 */ },
-            onStatusClick = { /* TODO: 버스 상태 상세 화면 구현 */ },
-            onHomeClick = { onNavigateTo(Screen.Home.route) },
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .onGloballyPositioned { layoutCoordinates ->
+                    sheetHeightPx = layoutCoordinates.size.height.toFloat()
+                }
+                .offset { IntOffset(0, sheetOffset.roundToInt()) }
+                .draggable(
+                    state = draggableState,
+                    orientation = Orientation.Vertical,
+                    onDragStopped = {
+                        val mid = (expandedOffsetPx + collapsedOffsetPx) / 2f
+                        val target =
+                            if (sheetOffset < mid) expandedOffsetPx else collapsedOffsetPx
+
+                        scope.launch {
+                            val anim = Animatable(sheetOffset)
+                            anim.animateTo(
+                                target,
+                                animationSpec = tween(durationMillis = 220)
+                            )
+                            sheetOffset = anim.value
+                        }
+                    }
+                )
+        ) {
+            RideInfoModal(
+                remainingMinutes = remainingMinutes,
+                departureStation = uiState.departureStation,
+                departureTime = uiState.departureTime,
+                arrivalStation = uiState.arrivalStation,
+                arrivalTime = uiState.arrivalTime,
+                busStatus = busStatus,
+                onBoardingStationClick = { /* TODO */ },
+                onStatusClick = { /* TODO */ },
+                onHomeClick = { onNavigateTo(Screen.Home.route) },
+                onClose = {
+                    val target =
+                        if (sheetOffset <= (expandedOffsetPx + collapsedOffsetPx) / 2f)
+                            collapsedOffsetPx
+                        else
+                            expandedOffsetPx
+
+                    scope.launch {
+                        val anim = Animatable(sheetOffset)
+                        anim.animateTo(
+                            target,
+                            animationSpec = tween(durationMillis = 220)
+                        )
+                        sheetOffset = anim.value
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -141,7 +188,9 @@ fun RideInfoModal(
     onBoardingStationClick: () -> Unit,
     onStatusClick: () -> Unit,
     onHomeClick: () -> Unit,
+    onClose: () -> Unit = {},
     modifier: Modifier = Modifier
+
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -160,6 +209,7 @@ fun RideInfoModal(
                     .height(4.dp)
                     .background(Gray300, RoundedCornerShape(2.dp))
                     .align(Alignment.CenterHorizontally)
+                    .clickable { onClose() }
             )
 
             Spacer(modifier = Modifier.height(20.dp))
