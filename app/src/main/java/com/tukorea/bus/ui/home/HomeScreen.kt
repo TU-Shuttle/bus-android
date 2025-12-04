@@ -2,10 +2,10 @@ package com.tukorea.bus.ui.home
 
 import android.Manifest
 import androidx.compose.animation.core.*
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
@@ -13,6 +13,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
@@ -31,7 +32,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -49,8 +49,7 @@ import com.tukorea.bus.ui.theme.*
 fun HomeScreen(
     onNavigateTo: (String) -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
-    mapViewModel: MapViewModel = hiltViewModel(),
-    onHomeToggleCallback: ((() -> Unit) -> Unit)? = null
+    mapViewModel: MapViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val mapState by mapViewModel.state.collectAsStateWithLifecycle()
@@ -68,8 +67,8 @@ fun HomeScreen(
     }
 
     LaunchedEffect(Unit) {
-        if (uiState.modalHeight != ModalHeight.LOW) {
-            viewModel.updateModalHeight(ModalHeight.LOW)
+        if (uiState.modalHeight != ModalHeight.MID) {
+            viewModel.updateModalHeight(ModalHeight.MID)
         }
 
         if (locationPermissionsState.allPermissionsGranted) {
@@ -77,12 +76,6 @@ fun HomeScreen(
         }
     }
 
-    // 홈 버튼 토글 콜백
-    LaunchedEffect(Unit) {
-        onHomeToggleCallback?.invoke {
-            viewModel.toggleModal()
-        }
-    }
 
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
 
@@ -97,7 +90,7 @@ fun HomeScreen(
                 title = {
                 Text(
                     text = "셔틀버스",
-                    style = MaterialTheme.typography.headlineMedium,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
             }, actions = {
@@ -143,7 +136,9 @@ fun HomeScreen(
                 density = density,
                 isVisible = uiState.isModalVisible,
                 runningBusesCount = uiState.runningBusesCount,
-                waitingBusesCount = uiState.waitingBusesCount
+                waitingBusesCount = uiState.waitingBusesCount,
+                hasUnreadImportantNotice = uiState.hasUnreadImportantNotice,
+                firstUnreadImportantNoticeId = uiState.firstUnreadImportantNoticeId
             )
         }
     }
@@ -159,24 +154,92 @@ fun BottomModal(
     density: Density,
     isVisible: Boolean = true,
     runningBusesCount: Int = 0,
-    waitingBusesCount: Int = 0
+    waitingBusesCount: Int = 0,
+    hasUnreadImportantNotice: Boolean = false,
+    firstUnreadImportantNoticeId: Int? = null
 ) {
+    // 3단계 높이 정의
+    val lowHeightPx = with(density) { 80.dp.toPx() }                       // 1단계: 80dp (드래그 바만 보임)
+    val midHeightPx = with(density) { (screenHeight * 0.40f).toPx() }      // 2단계: 40%
+    val highHeightPx = with(density) { (screenHeight * 0.75f).toPx() }     // 3단계: 75% (상단 바에 안 가리게)
 
-    val fixedHeight = screenHeight * 0.35f
+    // 현재 목표 높이 (단계별)
+    val targetHeightPx = when (modalHeight) {
+        ModalHeight.LOW -> lowHeightPx
+        ModalHeight.MID -> midHeightPx
+        ModalHeight.HIGH -> highHeightPx
+    }
 
-    val offsetY by animateDpAsState(
-        targetValue = if (isVisible) 0.dp else fixedHeight, animationSpec = tween(
-            durationMillis = 400, easing = FastOutSlowInEasing
-        ), label = "modal_offset"
+    // 드래그 상태
+    var isDragging by remember { mutableStateOf(false) }
+
+    // 현재 실제 높이 (드래그 중에도 유지)
+    var currentHeightPx by remember { mutableStateOf(midHeightPx) }
+
+    // modalHeight가 변경되면 목표 높이 업데이트
+    LaunchedEffect(modalHeight) {
+        currentHeightPx = when (modalHeight) {
+            ModalHeight.LOW -> lowHeightPx
+            ModalHeight.MID -> midHeightPx
+            ModalHeight.HIGH -> highHeightPx
+        }
+    }
+
+    // 애니메이션 높이 (드래그 중이 아닐 때만 목표로 이동)
+    val animatedHeightPx by animateFloatAsState(
+        targetValue = if (isVisible) {
+            if (isDragging) currentHeightPx else targetHeightPx
+        } else 0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "modal_height",
+        finishedListener = {
+            // 애니메이션 완료 후 현재 높이 업데이트
+            if (!isDragging) {
+                currentHeightPx = targetHeightPx
+            }
+        }
     )
+
+    // 최종 높이
+    val finalHeight = with(density) { animatedHeightPx.toDp() }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(fixedHeight)
+                .height(finalHeight)
                 .align(Alignment.BottomCenter)
-                .offset(y = offsetY),
+                .pointerInput(Unit) {
+                    detectVerticalDragGestures(
+                        onDragStart = {
+                            isDragging = true
+                        },
+                        onDragEnd = {
+                            // 현재 높이를 기준으로 가장 가까운 단계로 스냅
+                            val newHeight = when {
+                                currentHeightPx < (lowHeightPx + midHeightPx) / 2 -> ModalHeight.LOW
+                                currentHeightPx < (midHeightPx + highHeightPx) / 2 -> ModalHeight.MID
+                                else -> ModalHeight.HIGH
+                            }
+
+                            // 드래그 종료
+                            isDragging = false
+
+                            // 항상 새로운 단계로 변경 (같은 단계여도 스냅되도록)
+                            onModalHeightChange(newHeight)
+                        },
+                        onDragCancel = {
+                            isDragging = false
+                        },
+                        onVerticalDrag = { _, dragAmount ->
+                            // 드래그량만큼 높이 변경 (아래로 = 양수 = 감소, 위로 = 음수 = 증가)
+                            currentHeightPx = (currentHeightPx - dragAmount).coerceIn(lowHeightPx, highHeightPx)
+                        }
+                    )
+                },
             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
             color = MaterialTheme.colorScheme.surface,
             shadowElevation = 16.dp
@@ -184,9 +247,25 @@ fun BottomModal(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(top = 20.dp)
-
             ) {
+                // 드래그 핸들 바
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(40.dp)
+                            .height(4.dp)
+                            .background(
+                                color = Gray300,
+                                shape = RoundedCornerShape(2.dp)
+                            )
+                    )
+                }
+
                 val scrollState = rememberScrollState()
 
                 Column(
@@ -194,13 +273,17 @@ fun BottomModal(
                         .fillMaxSize()
                         .padding(horizontal = 20.dp)
                         .verticalScroll(scrollState)
-
                 ) {
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    NoticeBanner()
-
-                    Spacer(modifier = Modifier.height(16.dp))
+                    // 읽지 않은 중요 알림이 있을 때만 공지사항 배너 표시
+                    if (hasUnreadImportantNotice) {
+                        NoticeBanner(
+                            onNavigateTo = onNavigateTo,
+                            firstUnreadImportantNoticeId = firstUnreadImportantNoticeId
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
 
                     val hasReservation = remember(reservation) { reservation != null }
 
@@ -222,6 +305,9 @@ fun BottomModal(
                         runningBusesCount = runningBusesCount,
                         waitingBusesCount = waitingBusesCount
                     )
+
+                    // 하단 여백 추가 (콘텐츠가 잘리지 않도록)
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
             }
         }
@@ -229,9 +315,21 @@ fun BottomModal(
 }
 
 @Composable
-fun NoticeBanner() {
+fun NoticeBanner(
+    onNavigateTo: (String) -> Unit,
+    firstUnreadImportantNoticeId: Int? = null
+) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                // 첫 번째 중요 알림이 있으면 그 상세 화면으로, 없으면 알림 목록으로 이동
+                if (firstUnreadImportantNoticeId != null) {
+                    onNavigateTo(Screen.NotificationDetail.createRoute(firstUnreadImportantNoticeId))
+                } else {
+                    onNavigateTo(Screen.Notifications.route)
+                }
+            },
         shape = RoundedCornerShape(16.dp),
         color = Orange50,
         border = BorderStroke(1.5.dp, Orange600)
@@ -239,21 +337,21 @@ fun NoticeBanner() {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
-                    .background(Orange600, RoundedCornerShape(10.dp)),
+                    .size(36.dp)
+                    .background(Orange600, RoundedCornerShape(8.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Info,
                     contentDescription = null,
                     tint = White,
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(20.dp)
                 )
             }
             Column(modifier = Modifier.weight(1f)) {
@@ -319,7 +417,7 @@ fun NextReservationCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp)
+                .padding(16.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -442,14 +540,14 @@ fun NoReservationCard(onNavigateTo: (String) -> Unit) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(28.dp),
+                .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // 아이콘
             Box(
                 modifier = Modifier
-                    .size(72.dp)
+                    .size(64.dp)
                     .background(
                         Blue50, CircleShape
                     ), contentAlignment = Alignment.Center
@@ -457,7 +555,7 @@ fun NoReservationCard(onNavigateTo: (String) -> Unit) {
                 Icon(
                     imageVector = Icons.Default.DateRange,
                     contentDescription = null,
-                    modifier = Modifier.size(36.dp),
+                    modifier = Modifier.size(32.dp),
                     tint = PrimaryBlue
                 )
             }
@@ -667,102 +765,5 @@ fun RowScope.InfoCard(label: String, value: String, color: Color) {
     }
 }
 
-
-@Preview(showBackground = true, name = "Bottom Modal - With Reservation")
-@Composable
-private fun BottomModalPreview() {
-    BusTheme {
-        val mockReservation = Reservation(
-            id = 1, days = listOf("월", "수", "금"), time = "09:00", from = "기숙사", to = "본관"
-        )
-        BottomModal(
-            reservation = mockReservation,
-            modalHeight = ModalHeight.LOW,
-            onModalHeightChange = {},
-            onNavigateTo = {},
-            screenHeight = 800.dp,
-            density = Density(1f, 1f)
-        )
-    }
-}
-
-@Preview(showBackground = true, name = "Next Reservation Card")
-@Composable
-private fun NextReservationCardPreview() {
-    BusTheme {
-        val mockReservation = Reservation(
-            id = 1, days = listOf("월", "수", "금"), time = "09:00", from = "기숙사", to = "본관"
-        )
-        NextReservationCard(
-            reservation = mockReservation, onNavigateTo = {})
-    }
-}
-
-@Preview(showBackground = true, name = "Quick Action Grid")
-@Composable
-private fun QuickActionGridPreview() {
-    BusTheme {
-        QuickActionGrid(onNavigateTo = {})
-    }
-}
-
-@Preview(showBackground = true, name = "No Reservation Card")
-@Composable
-private fun NoReservationCardPreview() {
-    BusTheme {
-        NoReservationCard(onNavigateTo = {})
-    }
-}
-
-@Preview(showBackground = true, name = "Notice Banner")
-@Composable
-private fun NoticeBannerPreview() {
-    BusTheme {
-        NoticeBanner()
-    }
-}
-
-@Preview(showBackground = true, name = "Realtime Arrival Info")
-@Composable
-private fun RealtimeArrivalInfoPreview() {
-    BusTheme {
-        RealtimeArrivalInfo(runningBusesCount = 3, waitingBusesCount = 1)
-    }
-}
-
-
-@Preview(showBackground = true, name = "Info Card")
-@Composable
-private fun InfoCardPreview() {
-    BusTheme {
-        Row {
-            InfoCard("운행중", "3대", SuccessGreen)
-            InfoCard("대기중", "1대", PrimaryBlue)
-        }
-    }
-}
-
-@Preview(showBackground = true, name = "Quick Action Button - 빠른 탑승")
-@Composable
-private fun QuickActionButtonPreview() {
-    BusTheme {
-        QuickActionButton(
-            icon = Icons.Default.LocalFireDepartment,
-            label = "빠른 탑승",
-            subtitle = "지금 바로 타기",
-            backgroundColor = Blue50,
-            iconColor = PrimaryBlue,
-            textColor = Gray900,
-            subtitleColor = Gray500,
-            onClick = {})
-    }
-}
-
-@Preview(showBackground = true, name = "Home Screen")
-@Composable
-private fun HomeScreenPreview() {
-    BusTheme {
-        HomeScreen(onNavigateTo = {})
-    }
-}
+// Preview 함수 제거 - 실제 백엔드 연동 시 사용하지 않음
 
