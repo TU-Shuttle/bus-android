@@ -279,12 +279,12 @@ fun QuickRideScreen(
                             imageVector = Icons.Default.DirectionsTransit,
                             contentDescription = null,
                             modifier = Modifier.size(48.dp),
-                            tint = Gray300 // text-gray-300
+                            tint = Gray300
                         )
                         Text(
                             text = "운행 중인 버스가 없습니다",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = Gray400 // text-gray-400
+                            color = Gray400
                         )
                     }
                 }
