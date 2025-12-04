@@ -3,11 +3,14 @@ package com.tukorea.bus.ui.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.tukorea.bus.ui.calendar.CalendarScreen
 import com.tukorea.bus.ui.home.HomeScreen
 import com.tukorea.bus.ui.map.MapScreen
+import com.tukorea.bus.ui.notifications.NotificationDetailScreen
 import com.tukorea.bus.ui.notifications.NotificationsScreen
 import com.tukorea.bus.ui.quickride.QuickRideScreen
 import com.tukorea.bus.ui.realtime.RealtimeScreen
@@ -20,8 +23,7 @@ import com.tukorea.bus.ui.temp.TempScreen
 fun BusNavGraph(
     navController: NavHostController,
     modifier: Modifier = Modifier,
-    startDestination: String = Screen.Home.route,
-    onHomeToggleCallback: ((() -> Unit) -> Unit)? = null
+    startDestination: String = Screen.Home.route
 ) {
     NavHost(
         navController = navController,
@@ -36,8 +38,7 @@ fun BusNavGraph(
                         launchSingleTop = true
                         restoreState = true
                     }
-                },
-                onHomeToggleCallback = onHomeToggleCallback
+                }
             )
         }
         composable(Screen.Calendar.route) {
@@ -74,7 +75,23 @@ fun BusNavGraph(
             )
         }
         composable(Screen.Notifications.route) {
-            NotificationsScreen()
+            NotificationsScreen(
+                onNavigateToDetail = { notificationId ->
+                    navController.navigate(Screen.NotificationDetail.createRoute(notificationId))
+                }
+            )
+        }
+        composable(
+            route = Screen.NotificationDetail.route,
+            arguments = listOf(
+                navArgument("notificationId") { type = NavType.IntType }
+            )
+        ) { backStackEntry ->
+            val notificationId = backStackEntry.arguments?.getInt("notificationId") ?: return@composable
+            NotificationDetailScreen(
+                notificationId = notificationId,
+                onBackPress = { navController.popBackStack() }
+            )
         }
         composable(Screen.Settings.route) {
             SettingsScreen()
