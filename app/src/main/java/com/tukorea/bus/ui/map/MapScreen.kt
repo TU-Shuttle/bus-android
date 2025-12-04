@@ -122,11 +122,13 @@ fun MapScreen(
 }
 
 @Composable
-private fun NaverMapView(
+fun NaverMapView(
     modifier: Modifier = Modifier,
     currentLocation: MapLocation?,
     isLocationPermissionGranted: Boolean,
-    onMapReady: () -> Unit = {}
+    onMapReady: () -> Unit = {},
+    bottomPadding: Int = 0,
+    onMapInitialized: ((NaverMap) -> Unit)? = null
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -179,6 +181,14 @@ private fun NaverMapView(
                     map.moveCamera(cameraUpdate)
                     lastUpdatedLocation = location
                 }
+            }
+        }
+    }
+
+    LaunchedEffect(naverMap, isMapReady) {
+        naverMap?.let { map ->
+            if (isMapReady) {
+                onMapInitialized?.invoke(map)
             }
         }
     }

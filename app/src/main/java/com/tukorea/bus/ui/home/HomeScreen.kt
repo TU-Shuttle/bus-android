@@ -1,0 +1,768 @@
+package com.tukorea.bus.ui.home
+
+import android.Manifest
+import androidx.compose.animation.core.*
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import com.tukorea.bus.domain.model.Reservation
+import com.tukorea.bus.ui.map.MapViewModel
+import com.tukorea.bus.ui.map.NaverMapView
+import com.tukorea.bus.ui.navigation.Screen
+import com.tukorea.bus.ui.theme.*
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
+@Composable
+fun HomeScreen(
+    onNavigateTo: (String) -> Unit,
+    viewModel: HomeViewModel = hiltViewModel(),
+    mapViewModel: MapViewModel = hiltViewModel(),
+    onHomeToggleCallback: ((() -> Unit) -> Unit)? = null
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    val mapState by mapViewModel.state.collectAsStateWithLifecycle()
+
+    val locationPermissionsState = rememberMultiplePermissionsState(
+        permissions = listOf(
+            Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+    )
+
+    LaunchedEffect(locationPermissionsState.allPermissionsGranted) {
+        if (locationPermissionsState.allPermissionsGranted) {
+            mapViewModel.onLocationPermissionGranted()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        if (uiState.modalHeight != ModalHeight.LOW) {
+            viewModel.updateModalHeight(ModalHeight.LOW)
+        }
+
+        if (locationPermissionsState.allPermissionsGranted) {
+            mapViewModel.loadCurrentLocation()
+        }
+    }
+
+    // 홈 버튼 토글 콜백
+    LaunchedEffect(Unit) {
+        onHomeToggleCallback?.invoke {
+            viewModel.toggleModal()
+        }
+    }
+
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+
+    val density = LocalDensity.current
+
+    // 모달 높이
+    val fixedHeight = screenHeight * 0.35f
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                Text(
+                    text = "셔틀버스",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }, actions = {
+                IconButton(onClick = { onNavigateTo(Screen.Notifications.route) }) {
+                    Icon(
+                        Icons.Default.Notifications,
+                        contentDescription = "알림",
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            }, colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
+            )
+        }) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                NaverMapView(
+                    modifier = Modifier.fillMaxSize(),
+                    currentLocation = mapState.currentLocation,
+                    isLocationPermissionGranted = locationPermissionsState.allPermissionsGranted,
+                    onMapReady = {
+                        if (locationPermissionsState.allPermissionsGranted) {
+                            mapViewModel.loadCurrentLocation()
+                        }
+                    },
+                    bottomPadding = with(density) {
+                        (fixedHeight.toPx()).toInt()
+                    },
+                    onMapInitialized = { _ ->
+                    },
+                )
+            }
+
+            BottomModal(
+                reservation = uiState.nextReservation,
+                modalHeight = uiState.modalHeight,
+                onModalHeightChange = viewModel::updateModalHeight,
+                onNavigateTo = onNavigateTo,
+                screenHeight = screenHeight,
+                density = density,
+                isVisible = uiState.isModalVisible,
+                runningBusesCount = uiState.runningBusesCount,
+                waitingBusesCount = uiState.waitingBusesCount
+            )
+        }
+    }
+}
+
+@Composable
+fun BottomModal(
+    reservation: Reservation?,
+    modalHeight: ModalHeight,
+    onModalHeightChange: (ModalHeight) -> Unit,
+    onNavigateTo: (String) -> Unit,
+    screenHeight: Dp,
+    density: Density,
+    isVisible: Boolean = true,
+    runningBusesCount: Int = 0,
+    waitingBusesCount: Int = 0
+) {
+
+    val fixedHeight = screenHeight * 0.35f
+
+    val offsetY by animateDpAsState(
+        targetValue = if (isVisible) 0.dp else fixedHeight, animationSpec = tween(
+            durationMillis = 400, easing = FastOutSlowInEasing
+        ), label = "modal_offset"
+    )
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(fixedHeight)
+                .align(Alignment.BottomCenter)
+                .offset(y = offsetY),
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 16.dp
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = 20.dp)
+
+            ) {
+                val scrollState = rememberScrollState()
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 20.dp)
+                        .verticalScroll(scrollState)
+
+                ) {
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    NoticeBanner()
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    val hasReservation = remember(reservation) { reservation != null }
+
+                    if (hasReservation) {
+                        NextReservationCard(
+                            reservation = reservation!!, onNavigateTo = onNavigateTo
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                    } else {
+                        NoReservationCard(onNavigateTo = onNavigateTo)
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+
+                    QuickActionGrid(onNavigateTo = onNavigateTo)
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    RealtimeArrivalInfo(
+                        runningBusesCount = runningBusesCount,
+                        waitingBusesCount = waitingBusesCount
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun NoticeBanner() {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = Orange50,
+        border = BorderStroke(1.5.dp, Orange600)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(Orange600, RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = null,
+                    tint = White,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "공지사항",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Gray900
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "셔틀버스 운행 시간 변경 안내",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Gray600
+                )
+            }
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = Gray400,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+    }
+}
+
+
+@Composable
+fun NextReservationCard(
+    reservation: Reservation, onNavigateTo: (String) -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1f, animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow
+        ), label = "reservation_card_scale"
+    )
+
+    val gradientColors = remember {
+        listOf(
+            PrimaryBlue, Blue500
+        )
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer(scaleX = scale, scaleY = scale)
+            .clip(RoundedCornerShape(16.dp))
+            .background(
+                brush = remember(gradientColors) {
+                    Brush.horizontalGradient(colors = gradientColors)
+                })
+            .clickable(
+                interactionSource = interactionSource,
+                onClick = { onNavigateTo(Screen.Ride.route) })
+            .semantics {
+                contentDescription =
+                    "다음 예약: ${reservation.time}, ${reservation.from}에서 ${reservation.to}로"
+            }) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column {
+                    Text(
+                        text = "다음 예약",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Color.White.copy(alpha = 0.85f)
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = reservation.time,
+                        style = MaterialTheme.typography.displayMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .background(
+                            Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp)
+                        ), contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.DirectionsTransit,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(10.dp),
+                color = Color.White.copy(alpha = 0.15f)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = reservation.from,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.8f),
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = reservation.to,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onNavigateTo(Screen.Ride.route) }
+                    .semantics {
+                        contentDescription = "실시간 위치 보기"
+                    }, shape = RoundedCornerShape(12.dp), color = Color.White
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 14.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = null,
+                        tint = PrimaryBlue,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "실시간 위치 보기",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryBlue
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun NoReservationCard(onNavigateTo: (String) -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            // 아이콘
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .background(
+                        Blue50, CircleShape
+                    ), contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.DateRange,
+                    contentDescription = null,
+                    modifier = Modifier.size(36.dp),
+                    tint = PrimaryBlue
+                )
+            }
+
+            // 메시지
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    text = "다음 예약이 없습니다",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Gray900
+                )
+                Text(
+                    text = "일정을 예약하고 편리하게 이용하세요",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Gray500
+                )
+            }
+
+            // 예약하기 버튼
+            Button(
+                onClick = { onNavigateTo(Screen.Calendar.route) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PrimaryBlue
+                ),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.DateRange,
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = "예약하기",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun QuickActionGrid(onNavigateTo: (String) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        QuickActionButton(
+            icon = Icons.Default.LocalFireDepartment,
+            label = "빠른 탑승",
+            subtitle = "지금 바로 타기",
+            backgroundColor = Blue50,
+            iconColor = PrimaryBlue,
+            textColor = Gray900,
+            subtitleColor = Gray500,
+            modifier = Modifier.weight(1f),
+            onClick = { onNavigateTo(Screen.QuickRide.route) })
+        QuickActionButton(
+            icon = Icons.Default.DateRange,
+            label = "예약하기",
+            subtitle = "미리 예약",
+            backgroundColor = Green50,
+            iconColor = SuccessGreen,
+            textColor = Gray900,
+            subtitleColor = Gray500,
+            modifier = Modifier.weight(1f),
+            onClick = { onNavigateTo(Screen.Calendar.route) })
+    }
+}
+
+
+@Composable
+fun QuickActionButton(
+    icon: ImageVector,
+    label: String,
+    subtitle: String,
+    backgroundColor: Color,
+    iconColor: Color,
+    textColor: Color,
+    subtitleColor: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.97f else 1f, animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow
+        ), label = "quick_action_scale"
+    )
+
+    // elevation을 파생 상태로 최적화
+    val elevation = remember(isPressed) {
+        if (isPressed) 2.dp else 1.dp
+    }
+
+    Card(
+        modifier = modifier
+            .graphicsLayer(scaleX = scale, scaleY = scale)
+            .semantics {
+                contentDescription = "$label 버튼, $subtitle"
+            }, onClick = onClick, colors = CardDefaults.cardColors(
+            containerColor = backgroundColor
+        ), shape = RoundedCornerShape(18.dp), elevation = CardDefaults.cardElevation(
+            defaultElevation = elevation
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            // 아이콘 박스
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(iconColor, RoundedCornerShape(14.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = label,
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
+            // 제목과 부제목
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = textColor
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = subtitleColor
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun RealtimeArrivalInfo(
+    runningBusesCount: Int = 0,
+    waitingBusesCount: Int = 0
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Text(
+            text = "실시간 도착 정보",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = Gray900
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            InfoCard("운행중", if (runningBusesCount > 0) "${runningBusesCount}대" else "", SuccessGreen)
+            InfoCard("대기중", if (waitingBusesCount > 0) "${waitingBusesCount}대" else "", PrimaryBlue)
+        }
+    }
+}
+
+
+@Composable
+fun RowScope.InfoCard(label: String, value: String, color: Color) {
+    Card(
+        modifier = Modifier.weight(1f),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = color.copy(alpha = 0.08f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 18.dp, horizontal = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = label, style = MaterialTheme.typography.labelMedium, color = Gray600
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
+        }
+    }
+}
+
+
+@Preview(showBackground = true, name = "Bottom Modal - With Reservation")
+@Composable
+private fun BottomModalPreview() {
+    BusTheme {
+        val mockReservation = Reservation(
+            id = 1, days = listOf("월", "수", "금"), time = "09:00", from = "기숙사", to = "본관"
+        )
+        BottomModal(
+            reservation = mockReservation,
+            modalHeight = ModalHeight.LOW,
+            onModalHeightChange = {},
+            onNavigateTo = {},
+            screenHeight = 800.dp,
+            density = Density(1f, 1f)
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Next Reservation Card")
+@Composable
+private fun NextReservationCardPreview() {
+    BusTheme {
+        val mockReservation = Reservation(
+            id = 1, days = listOf("월", "수", "금"), time = "09:00", from = "기숙사", to = "본관"
+        )
+        NextReservationCard(
+            reservation = mockReservation, onNavigateTo = {})
+    }
+}
+
+@Preview(showBackground = true, name = "Quick Action Grid")
+@Composable
+private fun QuickActionGridPreview() {
+    BusTheme {
+        QuickActionGrid(onNavigateTo = {})
+    }
+}
+
+@Preview(showBackground = true, name = "No Reservation Card")
+@Composable
+private fun NoReservationCardPreview() {
+    BusTheme {
+        NoReservationCard(onNavigateTo = {})
+    }
+}
+
+@Preview(showBackground = true, name = "Notice Banner")
+@Composable
+private fun NoticeBannerPreview() {
+    BusTheme {
+        NoticeBanner()
+    }
+}
+
+@Preview(showBackground = true, name = "Realtime Arrival Info")
+@Composable
+private fun RealtimeArrivalInfoPreview() {
+    BusTheme {
+        RealtimeArrivalInfo(runningBusesCount = 3, waitingBusesCount = 1)
+    }
+}
+
+
+@Preview(showBackground = true, name = "Info Card")
+@Composable
+private fun InfoCardPreview() {
+    BusTheme {
+        Row {
+            InfoCard("운행중", "3대", SuccessGreen)
+            InfoCard("대기중", "1대", PrimaryBlue)
+        }
+    }
+}
+
+@Preview(showBackground = true, name = "Quick Action Button - 빠른 탑승")
+@Composable
+private fun QuickActionButtonPreview() {
+    BusTheme {
+        QuickActionButton(
+            icon = Icons.Default.LocalFireDepartment,
+            label = "빠른 탑승",
+            subtitle = "지금 바로 타기",
+            backgroundColor = Blue50,
+            iconColor = PrimaryBlue,
+            textColor = Gray900,
+            subtitleColor = Gray500,
+            onClick = {})
+    }
+}
+
+@Preview(showBackground = true, name = "Home Screen")
+@Composable
+private fun HomeScreenPreview() {
+    BusTheme {
+        HomeScreen(onNavigateTo = {})
+    }
+}
+
