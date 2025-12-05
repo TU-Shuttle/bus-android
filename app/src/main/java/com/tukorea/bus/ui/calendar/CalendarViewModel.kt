@@ -28,6 +28,12 @@ class CalendarViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(CalendarUiState())
     val uiState: StateFlow<CalendarUiState> = _uiState.asStateFlow()
 
+    private val dayOrder = listOf("월", "화", "수", "목", "금", "토", "일")
+
+    private fun sortDays(days: List<String>): List<String> {
+        return days.sortedBy { dayOrder.indexOf(it) }
+    }
+
     init {
         loadCalendarData()
         loadReservations()
@@ -43,14 +49,7 @@ class CalendarViewModel @Inject constructor(
                 }
         }
 
-        viewModelScope.launch {
-            calendarRepository.getTimes()
-                .catch { _ ->
-                }
-                .collect { times ->
-                    _uiState.value = _uiState.value.copy(times = times)
-                }
-        }
+        loadTimesForScheduleType()
 
         viewModelScope.launch {
             calendarRepository.getLocations()
@@ -73,6 +72,17 @@ class CalendarViewModel @Inject constructor(
                             currentState.selectedTo
                         }
                     )
+                }
+        }
+    }
+
+    private fun loadTimesForScheduleType() {
+        viewModelScope.launch {
+            calendarRepository.getTimesByType(_uiState.value.scheduleType)
+                .catch { _ ->
+                }
+                .collect { times ->
+                    _uiState.value = _uiState.value.copy(times = times)
                 }
         }
     }
@@ -100,17 +110,61 @@ class CalendarViewModel @Inject constructor(
 
     fun toggleDay(day: String) {
         val currentDays = _uiState.value.selectedDays
+        val newDays = if (currentDays.contains(day)) {
+            currentDays.filter { it != day }
+        } else {
+            currentDays + day
+        }
+
         _uiState.value = _uiState.value.copy(
-            selectedDays = if (currentDays.contains(day)) {
-                currentDays.filter { it != day }
-            } else {
-                currentDays + day
-            }
+            selectedDays = newDays,
+            selectedTimes = if (newDays.isEmpty()) emptyList() else _uiState.value.selectedTimes
         )
     }
 
     fun selectTime(time: String) {
-        _uiState.value = _uiState.value.copy(selectedTime = time)
+        if (_uiState.value.selectedDays.isEmpty()) {
+            _uiState.value = _uiState.value.copy(
+                errorMessage = "먼저 날짜를 선택해주세요"
+            )
+            return
+        }
+
+        val currentTimes = _uiState.value.selectedTimes
+
+        val newTimes = if (currentTimes.contains(time)) {
+            // 이미 선택된 시간을 클릭하면 해제
+            currentTimes.filter { it != time }
+        } else {
+            // 새로운 시간 선택
+            if (currentTimes.size >= 2) {
+                // 2개 이상이면 가장 오래된 것 제거
+                currentTimes.drop(1) + time
+            } else {
+                currentTimes + time
+            }
+        }
+
+        _uiState.value = _uiState.value.copy(
+            selectedTimes = newTimes
+        )
+    }
+
+    fun toggleScheduleType() {
+        val currentType = _uiState.value.scheduleType
+        val newType = if (currentType == "등교") "하교" else "등교"
+
+        _uiState.value = _uiState.value.copy(
+            scheduleType = newType,
+            selectedTimes = emptyList() // 타입 변경시 선택된 시간 초기화
+        )
+
+        // 새로운 타입에 맞는 시간표 로드
+        loadTimesForScheduleType()
+    }
+
+    fun clearErrorMessage() {
+        _uiState.value = _uiState.value.copy(errorMessage = null)
     }
 
     fun selectFrom(from: String) {
@@ -133,7 +187,7 @@ class CalendarViewModel @Inject constructor(
                     )
                     return@launch
                 }
-                state.selectedTime.isEmpty() -> {
+                state.selectedTimes.isEmpty() -> {
                     _uiState.value = _uiState.value.copy(
                         errorMessage = "시간을 선택해주세요"
                     )
@@ -152,8 +206,8 @@ class CalendarViewModel @Inject constructor(
             try {
                 val newReservation = Reservation(
                     id = 0,
-                    days = state.selectedDays,
-                    time = state.selectedTime,
+                    days = sortDays(state.selectedDays),
+                    time = state.selectedTimes.first(),
                     from = state.selectedFrom,
                     to = state.selectedTo
                 )
@@ -161,7 +215,8 @@ class CalendarViewModel @Inject constructor(
                 val currentLocations = _uiState.value.locations
                 _uiState.value = _uiState.value.copy(
                     selectedDays = emptyList(),
-                    selectedTime = "",
+                    selectedTimes = emptyList(),
+                    scheduleType = "등교",
                     selectedFrom = if (currentLocations.isNotEmpty()) currentLocations.first() else "",
                     selectedTo = if (currentLocations.size > 1) currentLocations[1] else if (currentLocations.isNotEmpty()) currentLocations.first() else "",
                     isLoading = false,
@@ -211,7 +266,7 @@ class CalendarViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(
             editingReservationId = reservation.id,
             selectedDays = reservation.days,
-            selectedTime = reservation.time,
+            selectedTimes = listOf(reservation.time),
             selectedFrom = reservation.from,
             selectedTo = reservation.to
         )
@@ -222,7 +277,8 @@ class CalendarViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(
             editingReservationId = null,
             selectedDays = emptyList(),
-            selectedTime = "",
+            selectedTimes = emptyList(),
+            scheduleType = "등교",
             selectedFrom = if (currentLocations.isNotEmpty()) currentLocations.first() else "",
             selectedTo = if (currentLocations.size > 1) currentLocations[1] else if (currentLocations.isNotEmpty()) currentLocations.first() else ""
         )
@@ -241,7 +297,7 @@ class CalendarViewModel @Inject constructor(
                     )
                     return@launch
                 }
-                state.selectedTime.isEmpty() -> {
+                state.selectedTimes.isEmpty() -> {
                     _uiState.value = _uiState.value.copy(
                         errorMessage = "시간을 선택해주세요"
                     )
@@ -260,8 +316,8 @@ class CalendarViewModel @Inject constructor(
             try {
                 val updatedReservation = Reservation(
                     id = editingId,
-                    days = state.selectedDays,
-                    time = state.selectedTime,
+                    days = sortDays(state.selectedDays),
+                    time = state.selectedTimes.first(),
                     from = state.selectedFrom,
                     to = state.selectedTo
                 )
@@ -271,7 +327,8 @@ class CalendarViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     editingReservationId = null,
                     selectedDays = emptyList(),
-                    selectedTime = "",
+                    selectedTimes = emptyList(),
+                    scheduleType = "등교",
                     selectedFrom = if (currentLocations.isNotEmpty()) currentLocations.first() else "",
                     selectedTo = if (currentLocations.size > 1) currentLocations[1] else if (currentLocations.isNotEmpty()) currentLocations.first() else "",
                     isLoading = false,
