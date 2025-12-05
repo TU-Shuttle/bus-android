@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
 import com.tukorea.bus.ui.navigation.BusNavGraph
@@ -23,10 +24,33 @@ class MainActivity : ComponentActivity() {
             BusTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     val navController = rememberNavController()
-                    BusNavGraph(
-                        navController = navController,
-                        startDestination = Screen.Map.route
-                    )
+                    val navBackStackEntry by navController.currentBackStackEntryAsState()
+                    val currentRoute = navBackStackEntry?.destination?.route
+
+                    Scaffold(
+                        bottomBar = {
+                            if (currentRoute != Screen.Realtime.route && currentRoute != Screen.Ride.route) {
+                                BottomNavigationBar(
+                                    currentRoute = currentRoute,
+                                    onNavigate = { route ->
+                                        navController.navigate(route) {
+                                            popUpTo(navController.graph.startDestinationId) {
+                                                saveState = true
+                                            }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    },
+                                )
+                            }
+                        }
+                    ) { paddingValues ->
+                        BusNavGraph(
+                            navController = navController,
+                            startDestination = Screen.Home.route,
+                            modifier = Modifier.padding(paddingValues)
+                        )
+                    }
                 }
             }
         }
