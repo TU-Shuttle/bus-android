@@ -34,7 +34,8 @@ import com.tukorea.bus.ui.theme.*
 
 @Composable
 fun NotificationsScreen(
-    viewModel: NotificationsViewModel = hiltViewModel()
+    viewModel: NotificationsViewModel = hiltViewModel(),
+    onNavigateToDetail: (Int) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val notifications = uiState.notifications
@@ -81,7 +82,8 @@ fun NotificationsScreen(
                 ) {
                     NotificationCard(
                         notification = notification,
-                        viewModel = viewModel
+                        viewModel = viewModel,
+                        onNavigateToDetail = onNavigateToDetail
                     )
                 }
             }
@@ -146,7 +148,8 @@ private fun MarkAllAsReadButton(onClick: () -> Unit) {
 @Composable
 private fun NotificationCard(
     notification: Notification,
-    viewModel: NotificationsViewModel
+    viewModel: NotificationsViewModel,
+    onNavigateToDetail: (Int) -> Unit = {}
 ) {
     val config = remember(notification.type) {
         when (notification.type) {
@@ -213,10 +216,7 @@ private fun NotificationCard(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = {
-                    if (!notification.read) {
-                        viewModel.markAsRead(notification.id)
-                    }
-                    // TODO: 알림 상세 화면 구현
+                    onNavigateToDetail(notification.id)
                 }
             ),
         shape = RoundedCornerShape(16.dp),

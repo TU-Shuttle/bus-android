@@ -10,6 +10,9 @@ sealed class Screen(val route: String) {
     data object Stations : Screen("stations")
     data object QuickRide : Screen("quick_ride")
     data object Notifications : Screen("notifications")
+    data object NotificationDetail : Screen("notification_detail/{notificationId}") {
+        fun createRoute(notificationId: Int) = "notification_detail/$notificationId"
+    }
     data object Settings : Screen("settings")
     data object Realtime : Screen("realtime")
     data object Ride : Screen("ride")

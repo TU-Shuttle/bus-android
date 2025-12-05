@@ -10,9 +10,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
@@ -38,8 +35,6 @@ class MainActivity : ComponentActivity() {
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
                     val currentRoute = navBackStackEntry?.destination?.route
 
-                    var homeToggleCallback by remember { mutableStateOf<(() -> Unit)?>(null) }
-
                     Scaffold(
                         bottomBar = {
                             if (currentRoute != Screen.Realtime.route && currentRoute != Screen.Ride.route) {
@@ -54,9 +49,6 @@ class MainActivity : ComponentActivity() {
                                             restoreState = true
                                         }
                                     },
-                                    onHomeToggle = {
-                                        homeToggleCallback?.invoke()
-                                    }
                                 )
                             }
                         }
@@ -64,8 +56,6 @@ class MainActivity : ComponentActivity() {
                         BusNavGraph(
                             navController = navController,
                             startDestination = Screen.Home.route,
-                            onHomeToggleCallback = { _ ->
-                            },
                             modifier = Modifier.padding(paddingValues)
                         )
                     }

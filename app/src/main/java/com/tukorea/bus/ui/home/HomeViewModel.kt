@@ -3,6 +3,7 @@ package com.tukorea.bus.ui.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tukorea.bus.domain.usecase.GetNextReservationUseCase
+import com.tukorea.bus.domain.usecase.GetNotificationsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,7 +14,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val getNextReservationUseCase: GetNextReservationUseCase
+    private val getNextReservationUseCase: GetNextReservationUseCase,
+    private val getNotificationsUseCase: GetNotificationsUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -21,6 +23,7 @@ class HomeViewModel @Inject constructor(
 
     init {
         loadNextReservation()
+        observeImportantNotifications()
     }
 
     private fun loadNextReservation() {
@@ -48,10 +51,27 @@ class HomeViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(modalHeight = height)
     }
 
-    fun toggleModal() {
-        _uiState.value = _uiState.value.copy(
-            isModalVisible = !_uiState.value.isModalVisible,
-            modalHeight = if (!_uiState.value.isModalVisible) ModalHeight.LOW else ModalHeight.LOW
-        )
+    private fun observeImportantNotifications() {
+        viewModelScope.launch {
+            getNotificationsUseCase()
+                .catch { exception ->
+                    // 오류가 발생해도 알림 배너는 표시하지 않음
+                    _uiState.value = _uiState.value.copy(
+                        hasUnreadImportantNotice = false,
+                        firstUnreadImportantNoticeId = null
+                    )
+                }
+                .collect { notifications ->
+                    // 읽지 않은 중요 알림이 있는지 확인
+                    val unreadImportant = notifications.filter { it.important && !it.read }
+                    val hasUnreadImportant = unreadImportant.isNotEmpty()
+                    val firstId = unreadImportant.firstOrNull()?.id
+
+                    _uiState.value = _uiState.value.copy(
+                        hasUnreadImportantNotice = hasUnreadImportant,
+                        firstUnreadImportantNoticeId = firstId
+                    )
+                }
+        }
     }
 }
