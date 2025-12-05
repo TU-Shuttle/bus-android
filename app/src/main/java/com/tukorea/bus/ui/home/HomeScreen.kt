@@ -13,6 +13,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -85,27 +86,8 @@ fun HomeScreen(
     val fixedHeight = screenHeight * 0.35f
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                Text(
-                    text = "셔틀버스",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-            }, actions = {
-                IconButton(onClick = { onNavigateTo(Screen.Notifications.route) }) {
-                    Icon(
-                        Icons.Default.Notifications,
-                        contentDescription = "알림",
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-            }, colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            )
-            )
-        }) {
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
+    ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Box(
                 modifier = Modifier.fillMaxSize()
@@ -140,6 +122,33 @@ fun HomeScreen(
                 hasUnreadImportantNotice = uiState.hasUnreadImportantNotice,
                 firstUnreadImportantNoticeId = uiState.firstUnreadImportantNoticeId
             )
+
+            // 알림 버튼 (오른쪽 상단)
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 16.dp, end = 16.dp)
+            ) {
+                Surface(
+                    onClick = { onNavigateTo(Screen.Notifications.route) },
+                    modifier = Modifier.size(48.dp),
+                    shape = CircleShape,
+                    color = White,
+                    shadowElevation = 4.dp
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        Icon(
+                            Icons.Default.Notifications,
+                            contentDescription = "알림",
+                            tint = Gray900,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -191,8 +200,8 @@ fun BottomModal(
             if (isDragging) currentHeightPx else targetHeightPx
         } else 0f,
         animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessLow
         ),
         label = "modal_height",
         finishedListener = {
@@ -211,35 +220,7 @@ fun BottomModal(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(finalHeight)
-                .align(Alignment.BottomCenter)
-                .pointerInput(Unit) {
-                    detectVerticalDragGestures(
-                        onDragStart = {
-                            isDragging = true
-                        },
-                        onDragEnd = {
-                            // 현재 높이를 기준으로 가장 가까운 단계로 스냅
-                            val newHeight = when {
-                                currentHeightPx < (lowHeightPx + midHeightPx) / 2 -> ModalHeight.LOW
-                                currentHeightPx < (midHeightPx + highHeightPx) / 2 -> ModalHeight.MID
-                                else -> ModalHeight.HIGH
-                            }
-
-                            // 드래그 종료
-                            isDragging = false
-
-                            // 항상 새로운 단계로 변경 (같은 단계여도 스냅되도록)
-                            onModalHeightChange(newHeight)
-                        },
-                        onDragCancel = {
-                            isDragging = false
-                        },
-                        onVerticalDrag = { _, dragAmount ->
-                            // 드래그량만큼 높이 변경 (아래로 = 양수 = 감소, 위로 = 음수 = 증가)
-                            currentHeightPx = (currentHeightPx - dragAmount).coerceIn(lowHeightPx, highHeightPx)
-                        }
-                    )
-                },
+                .align(Alignment.BottomCenter),
             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
             color = MaterialTheme.colorScheme.surface,
             shadowElevation = 16.dp
@@ -248,11 +229,43 @@ fun BottomModal(
                 modifier = Modifier
                     .fillMaxSize()
             ) {
-                // 드래그 핸들 바
+                // 드래그 핸들 영역 (터치 영역 확장)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 12.dp),
+                        .height(48.dp)
+                        .pointerInput(Unit) {
+                            detectVerticalDragGestures(
+                                onDragStart = {
+                                    isDragging = true
+                                },
+                                onDragEnd = {
+                                    // 현재 높이를 기준으로 가장 가까운 단계로 스냅
+                                    val newHeight = when {
+                                        currentHeightPx < (lowHeightPx + midHeightPx) / 2 -> ModalHeight.LOW
+                                        currentHeightPx < (midHeightPx + highHeightPx) / 2 -> ModalHeight.MID
+                                        else -> ModalHeight.HIGH
+                                    }
+
+                                    // 드래그 종료
+                                    isDragging = false
+
+                                    // 항상 새로운 단계로 변경 (같은 단계여도 스냅되도록)
+                                    onModalHeightChange(newHeight)
+                                },
+                                onDragCancel = {
+                                    isDragging = false
+                                },
+                                onVerticalDrag = { _, dragAmount ->
+                                    // 드래그량만큼 높이 변경 (아래로 = 양수 = 감소, 위로 = 음수 = 증가)
+                                    currentHeightPx =
+                                        (currentHeightPx - dragAmount).coerceIn(
+                                            lowHeightPx,
+                                            highHeightPx
+                                        )
+                                }
+                            )
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Box(
@@ -268,10 +281,53 @@ fun BottomModal(
 
                 val scrollState = rememberScrollState()
 
+                // 스크롤이 맨 위에 있을 때 아래로 드래그하면 모달을 내리기 위한 nestedScroll
+                val nestedScrollConnection = remember {
+                    object : androidx.compose.ui.input.nestedscroll.NestedScrollConnection {
+                        override fun onPreScroll(
+                            available: androidx.compose.ui.geometry.Offset,
+                            source: androidx.compose.ui.input.nestedscroll.NestedScrollSource
+                        ): androidx.compose.ui.geometry.Offset {
+                            // 스크롤이 맨 위에 있고, 아래로 스크롤하려는 경우 (available.y > 0)
+                            if (scrollState.value == 0 && available.y > 0) {
+                                // 모달 높이를 줄임
+                                currentHeightPx = (currentHeightPx - available.y).coerceIn(lowHeightPx, highHeightPx)
+                                isDragging = true
+                                return available // 스크롤 이벤트를 소비
+                            }
+                            return androidx.compose.ui.geometry.Offset.Zero
+                        }
+
+                        override fun onPostScroll(
+                            consumed: androidx.compose.ui.geometry.Offset,
+                            available: androidx.compose.ui.geometry.Offset,
+                            source: androidx.compose.ui.input.nestedscroll.NestedScrollSource
+                        ): androidx.compose.ui.geometry.Offset {
+                            return androidx.compose.ui.geometry.Offset.Zero
+                        }
+
+                        override suspend fun onPreFling(available: androidx.compose.ui.unit.Velocity): androidx.compose.ui.unit.Velocity {
+                            if (isDragging) {
+                                // Fling 종료 시 가장 가까운 단계로 스냅
+                                val newHeight = when {
+                                    currentHeightPx < (lowHeightPx + midHeightPx) / 2 -> ModalHeight.LOW
+                                    currentHeightPx < (midHeightPx + highHeightPx) / 2 -> ModalHeight.MID
+                                    else -> ModalHeight.HIGH
+                                }
+                                isDragging = false
+                                onModalHeightChange(newHeight)
+                                return available // velocity를 소비
+                            }
+                            return androidx.compose.ui.unit.Velocity.Zero
+                        }
+                    }
+                }
+
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = 20.dp)
+                        .nestedScroll(nestedScrollConnection)
                         .verticalScroll(scrollState)
                 ) {
                     Spacer(modifier = Modifier.height(8.dp))
