@@ -1,5 +1,6 @@
 package com.tukorea.bus.ui.calendar
 
+import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
@@ -8,7 +9,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -176,6 +177,7 @@ fun ReservationItem(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@Suppress("UnusedMaterial3ScaffoldPaddingParameter")
 fun CalendarScreen(
     onNavigateTo: (String) -> Unit,
     viewModel: CalendarViewModel = hiltViewModel()
@@ -186,7 +188,8 @@ fun CalendarScreen(
     val times = remember(uiState.times) { uiState.times }
     val locations = remember(uiState.locations) { uiState.locations }
     val selectedDays = remember(uiState.selectedDays) { uiState.selectedDays }
-    val selectedTime = remember(uiState.selectedTime) { uiState.selectedTime }
+    val selectedTimes = remember(uiState.selectedTimes) { uiState.selectedTimes }
+    val scheduleType = remember(uiState.scheduleType) { uiState.scheduleType }
     val selectedFrom = remember(uiState.selectedFrom) { uiState.selectedFrom }
     val selectedTo = remember(uiState.selectedTo) { uiState.selectedTo }
     val reservations = remember(uiState.reservations) { uiState.reservations }
@@ -194,8 +197,8 @@ fun CalendarScreen(
         remember(uiState.editingReservationId) { uiState.editingReservationId }
     val isEditing = remember(editingReservationId) { editingReservationId != null }
 
-    val isReservationEnabled = remember(selectedTime, selectedDays) {
-        selectedTime.isNotEmpty() && selectedDays.isNotEmpty()
+    val isReservationEnabled = remember(selectedTimes, selectedDays) {
+        selectedTimes.isNotEmpty() && selectedDays.isNotEmpty()
     }
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -206,13 +209,31 @@ fun CalendarScreen(
                 message = error,
                 duration = SnackbarDuration.Short
             )
+            viewModel.clearErrorMessage()
         }
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = {
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentSize(Alignment.Center)
+            ) { data ->
+                Snackbar(
+                    snackbarData = data,
+                    modifier = Modifier
+                        .wrapContentWidth()
+                        .padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    containerColor = Gray900,
+                    contentColor = Color.White
+                )
+            }
+        },
         containerColor = Gray50
-    ) { paddingValues ->
+    ) { _ ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -317,12 +338,43 @@ fun CalendarScreen(
                             }
                         }
 
-                        Text(
-                            text = "시간 선택",
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = Gray900
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "시간 선택",
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Gray900
+                            )
+
+                            Surface(
+                                onClick = { viewModel.toggleScheduleType() },
+                                shape = RoundedCornerShape(20.dp),
+                                color = if (scheduleType == "등교") Color(0xFF4A90E2) else Color(0xFFE74C3C)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = scheduleType,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Default.SwapHoriz,
+                                        contentDescription = "타입 변경",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
+                            }
+                        }
 
                         Surface(
                             modifier = Modifier
@@ -341,7 +393,7 @@ fun CalendarScreen(
                                     items = times,
                                     key = { time -> time }
                                 ) { time ->
-                                    val isSelected = selectedTime == time
+                                    val isSelected = selectedTimes.contains(time)
                                     val timeInt = time.split(":")[0].toIntOrNull() ?: 0
                                     val period = if (timeInt < 12) "오전" else "오후"
 
@@ -349,7 +401,11 @@ fun CalendarScreen(
                                     val isPressed by interactionSource.collectIsPressedAsState()
 
                                     val backgroundColor: Color by animateColorAsState(
-                                        targetValue = if (isSelected) PrimaryBlue else Color.White,
+                                        targetValue = if (isSelected) {
+                                            if (scheduleType == "등교") Color(0xFF4A90E2) else Color(0xFFE74C3C)
+                                        } else {
+                                            Color.White
+                                        },
                                         animationSpec = tween(durationMillis = 200),
                                         label = "time_button_background"
                                     )
@@ -404,7 +460,13 @@ fun CalendarScreen(
                             }
                         }
 
-                        if (isReservationEnabled) {
+                        AnimatedVisibility(
+                            visible = isReservationEnabled,
+                            enter = fadeIn(animationSpec = tween(300)) +
+                                    expandVertically(animationSpec = tween(300)),
+                            exit = fadeOut(animationSpec = tween(200)) +
+                                    shrinkVertically(animationSpec = tween(200))
+                        ) {
                             Column(
                                 verticalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
@@ -441,7 +503,8 @@ fun CalendarScreen(
                                         )
                                         ExposedDropdownMenu(
                                             expanded = expandedFrom,
-                                            onDismissRequest = { expandedFrom = false }
+                                            onDismissRequest = { expandedFrom = false },
+                                            modifier = Modifier.background(Color.White)
                                         ) {
                                             locations.forEach { location ->
                                                 DropdownMenuItem(
@@ -488,7 +551,8 @@ fun CalendarScreen(
                                         )
                                         ExposedDropdownMenu(
                                             expanded = expandedTo,
-                                            onDismissRequest = { expandedTo = false }
+                                            onDismissRequest = { expandedTo = false },
+                                            modifier = Modifier.background(Color.White)
                                         ) {
                                             locations.filter { it != selectedFrom }
                                                 .forEach { location ->
@@ -637,6 +701,7 @@ fun CalendarScreen(
             uiState.deletingReservationId?.let { reservationId ->
                 AlertDialog(
                     onDismissRequest = { viewModel.hideDeleteDialog() },
+                    containerColor = Color.White,
                     icon = {
                         Icon(
                             imageVector = Icons.Default.DateRange,
@@ -679,7 +744,7 @@ fun CalendarScreen(
             }
         }
     }
-    }
+}
 
 // Preview 함수 제거 - 실제 백엔드 연동 시 사용하지 않음
 
