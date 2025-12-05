@@ -5,7 +5,8 @@ import com.tukorea.bus.domain.model.Reservation
 data class CalendarUiState(
     val reservations: List<Reservation> = emptyList(),
     val selectedDays: List<String> = emptyList(),
-    val selectedTime: String = "",
+    val selectedTimes: List<String> = emptyList(),
+    val scheduleType: String = "등교", // 등교/하교 타입 (모든 선택된 시간에 적용)
     val selectedFrom: String = "",
     val selectedTo: String = "",
     val isLoading: Boolean = false,
