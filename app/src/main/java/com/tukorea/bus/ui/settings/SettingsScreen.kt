@@ -4,28 +4,42 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Help
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tukorea.bus.ui.theme.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.runtime.remember
 
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -35,25 +49,28 @@ fun SettingsScreen(
             .padding(bottom = 80.dp)
     ) {
         Spacer(modifier = Modifier.height(28.dp))
-        
+
         SettingsHeader()
-        
+
         SettingsContent(
             appVersion = uiState.appVersion,
+            isPushEnabled = uiState.isPushNotificationEnabled,
+            isReservationEnabled = uiState.isReservationNotificationEnabled,
+            onPushToggle = { enabled -> viewModel.onPushNotificationChanged(enabled) },
+            onReservationToggle = { enabled -> viewModel.onReservationNotificationChanged(enabled) },
             onItemClick = { itemId ->
                 when (itemId) {
-                    "push_notification" -> { }
-                    "reservation_notification" -> { }
-                    "profile" -> { }
-                    "logout" -> { }
-                    "app_info" -> { }
-                    "help" -> { }
+                    "app_info" -> {
+                        // TODO: 앱 정보 화면 이동 or Dialog
+                    }
+                    "help" -> {
+                        // TODO: 도움말 화면 이동
+                    }
                 }
             }
         )
     }
 }
-
 
 @Composable
 private fun SettingsHeader() {
@@ -69,42 +86,33 @@ private fun SettingsHeader() {
 @Composable
 private fun SettingsContent(
     appVersion: String,
+    isPushEnabled: Boolean,
+    isReservationEnabled: Boolean,
+    onPushToggle: (Boolean) -> Unit,
+    onReservationToggle: (Boolean) -> Unit,
     onItemClick: (String) -> Unit
 ) {
+    // 알림 섹션 (토글)
     SettingsSection(title = "알림") {
-        SettingsItemRow(
+        SettingsToggleRow(
             icon = Icons.Default.Notifications,
             title = "푸시 알림",
             subtitle = "버스 도착 알림을 받습니다",
-            onClick = { onItemClick("push_notification") },
+            checked = isPushEnabled,
+            onCheckedChange = onPushToggle,
             showDivider = true
         )
-        SettingsItemRow(
+        SettingsToggleRow(
             icon = Icons.Default.Schedule,
             title = "예약 알림",
             subtitle = "예약된 시간 10분 전 알림",
-            onClick = { onItemClick("reservation_notification") },
+            checked = isReservationEnabled,
+            onCheckedChange = onReservationToggle,
             showDivider = false
         )
     }
-    
-    SettingsSection(title = "계정") {
-        SettingsItemRow(
-            icon = Icons.Default.Person,
-            title = "프로필",
-            subtitle = "내 정보 관리",
-            onClick = { onItemClick("profile") },
-            showDivider = true
-        )
-        SettingsItemRow(
-            icon = Icons.Default.Logout,
-            title = "로그아웃",
-            subtitle = null,
-            onClick = { onItemClick("logout") },
-            showDivider = false
-        )
-    }
-    
+
+    // 기타 섹션 (클릭형)
     SettingsSection(title = "기타") {
         SettingsItemRow(
             icon = Icons.Default.Info,
@@ -136,7 +144,7 @@ private fun SettingsSection(
             color = Gray700,
             modifier = Modifier.padding(bottom = 12.dp, start = 4.dp)
         )
-        
+
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.medium,
@@ -148,6 +156,83 @@ private fun SettingsSection(
     }
 }
 
+/**
+ * 🔘 토글 타입 아이템 (푸시/예약 알림)
+ */
+@Composable
+private fun SettingsToggleRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String? = null,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    showDivider: Boolean
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .toggleable(
+                    value = checked,
+                    onValueChange = onCheckedChange,
+                    role = Role.Switch,
+                    interactionSource = interactionSource,
+                    indication = null   // ✅ 눌렀을 때 어두워지는 효과 제거
+                )
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = PrimaryBlue,
+                modifier = Modifier.size(24.dp)
+            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = Gray900
+                )
+                subtitle?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Gray500,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+            }
+
+            Switch(
+                checked = checked,
+                onCheckedChange = null,
+                modifier = Modifier
+                    .size(52.dp)
+                    .align(Alignment.CenterVertically)
+            )
+        }
+
+        if (showDivider) {
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                color = Gray200
+            )
+        }
+    }
+}
+
+/**
+ * ▶ 클릭 타입 아이템 (앱 정보, 도움말 등)
+ */
 @Composable
 private fun SettingsItemRow(
     icon: ImageVector,
@@ -171,7 +256,7 @@ private fun SettingsItemRow(
                 tint = PrimaryBlue,
                 modifier = Modifier.size(24.dp)
             )
-            
+
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
@@ -188,7 +273,7 @@ private fun SettingsItemRow(
                     )
                 }
             }
-            
+
             Icon(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = null,
@@ -196,7 +281,7 @@ private fun SettingsItemRow(
                 modifier = Modifier.size(20.dp)
             )
         }
-        
+
         if (showDivider) {
             HorizontalDivider(
                 modifier = Modifier.padding(horizontal = 16.dp),
@@ -205,5 +290,3 @@ private fun SettingsItemRow(
         }
     }
 }
-
-
