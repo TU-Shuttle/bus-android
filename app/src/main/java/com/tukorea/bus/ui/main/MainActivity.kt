@@ -5,15 +5,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.tukorea.bus.ui.common.BottomNavigationBar
 import com.tukorea.bus.ui.navigation.BusNavGraph
 import com.tukorea.bus.ui.navigation.Screen
 import com.tukorea.bus.ui.theme.BusTheme
@@ -27,38 +21,12 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             BusTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
+                Surface(modifier = Modifier.fillMaxSize()) {
                     val navController = rememberNavController()
-                    val navBackStackEntry by navController.currentBackStackEntryAsState()
-                    val currentRoute = navBackStackEntry?.destination?.route
-
-                    Scaffold(
-                        bottomBar = {
-                            if (currentRoute != Screen.Realtime.route && currentRoute != Screen.Ride.route) {
-                                BottomNavigationBar(
-                                    currentRoute = currentRoute,
-                                    onNavigate = { route ->
-                                        navController.navigate(route) {
-                                            popUpTo(navController.graph.startDestinationId) {
-                                                saveState = true
-                                            }
-                                            launchSingleTop = true
-                                            restoreState = true
-                                        }
-                                    },
-                                )
-                            }
-                        }
-                    ) { paddingValues ->
-                        BusNavGraph(
-                            navController = navController,
-                            startDestination = Screen.Home.route,
-                            modifier = Modifier.padding(paddingValues)
-                        )
-                    }
+                    BusNavGraph(
+                        navController = navController,
+                        startDestination = Screen.Map.route
+                    )
                 }
             }
         }
