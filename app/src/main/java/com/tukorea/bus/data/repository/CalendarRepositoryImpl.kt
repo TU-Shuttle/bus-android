@@ -51,8 +51,23 @@ class CalendarRepositoryImpl @Inject constructor() : CalendarRepository {
         }
     }
 
+    override fun getTimesByRoute(from: String, to: String): Flow<List<String>> {
+        return when {
+            // 정왕역 -> 캠퍼스 (등교)
+            from == "정왕역" && (to == "1캠퍼스" || to == "2캠퍼스") -> {
+                flowOf(goingToSchoolTimes)
+            }
+            // 캠퍼스 -> 정왕역 (하교)
+            (from == "1캠퍼스" || from == "2캠퍼스") && to == "정왕역" -> {
+                flowOf(leavingSchoolTimes)
+            }
+            // 기타 경로는 모든 시간 제공
+            else -> getTimes()
+        }
+    }
+
     override fun getLocations(): Flow<List<String>> {
-        val stations = listOf("1캠퍼스", "2캠퍼스", "정왕역", "오이도역")
+        val stations = listOf("1캠퍼스", "2캠퍼스", "정왕역")
         return flowOf(stations)
     }
 }
