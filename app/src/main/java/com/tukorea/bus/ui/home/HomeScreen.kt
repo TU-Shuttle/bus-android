@@ -127,7 +127,7 @@ fun HomeScreen(
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(top = 16.dp, end = 16.dp)
+                    .padding(top = 38.dp, end = 28.dp)
             ) {
                 Surface(
                     onClick = { onNavigateTo(Screen.Notifications.route) },
