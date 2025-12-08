@@ -49,8 +49,6 @@ class CalendarViewModel @Inject constructor(
                 }
         }
 
-        loadTimesForScheduleType()
-
         viewModelScope.launch {
             calendarRepository.getLocations()
                 .catch { _ ->
@@ -72,18 +70,23 @@ class CalendarViewModel @Inject constructor(
                             currentState.selectedTo
                         }
                     )
+                    // 초기 로드 시 시간표 로드
+                    loadTimesForRoute()
                 }
         }
     }
 
-    private fun loadTimesForScheduleType() {
+    private fun loadTimesForRoute() {
         viewModelScope.launch {
-            calendarRepository.getTimesByType(_uiState.value.scheduleType)
-                .catch { _ ->
-                }
-                .collect { times ->
-                    _uiState.value = _uiState.value.copy(times = times)
-                }
+            val state = _uiState.value
+            if (state.selectedFrom.isNotEmpty() && state.selectedTo.isNotEmpty()) {
+                calendarRepository.getTimesByRoute(state.selectedFrom, state.selectedTo)
+                    .catch { _ ->
+                    }
+                    .collect { times ->
+                        _uiState.value = _uiState.value.copy(times = times)
+                    }
+            }
         }
     }
 
@@ -125,7 +128,7 @@ class CalendarViewModel @Inject constructor(
     fun selectTime(time: String) {
         if (_uiState.value.selectedDays.isEmpty()) {
             _uiState.value = _uiState.value.copy(
-                errorMessage = "먼저 날짜를 선택해주세요"
+                errorMessage = "먼저 요일을 선택해주세요"
             )
             return
         }
@@ -150,29 +153,24 @@ class CalendarViewModel @Inject constructor(
         )
     }
 
-    fun toggleScheduleType() {
-        val currentType = _uiState.value.scheduleType
-        val newType = if (currentType == "등교") "하교" else "등교"
-
-        _uiState.value = _uiState.value.copy(
-            scheduleType = newType,
-            selectedTimes = emptyList() // 타입 변경시 선택된 시간 초기화
-        )
-
-        // 새로운 타입에 맞는 시간표 로드
-        loadTimesForScheduleType()
-    }
-
     fun clearErrorMessage() {
         _uiState.value = _uiState.value.copy(errorMessage = null)
     }
 
     fun selectFrom(from: String) {
-        _uiState.value = _uiState.value.copy(selectedFrom = from)
+        _uiState.value = _uiState.value.copy(
+            selectedFrom = from,
+            selectedTimes = emptyList() // 출발지 변경시 선택된 시간 초기화
+        )
+        loadTimesForRoute()
     }
 
     fun selectTo(to: String) {
-        _uiState.value = _uiState.value.copy(selectedTo = to)
+        _uiState.value = _uiState.value.copy(
+            selectedTo = to,
+            selectedTimes = emptyList() // 도착지 변경시 선택된 시간 초기화
+        )
+        loadTimesForRoute()
     }
 
     fun addReservation() {
@@ -181,6 +179,12 @@ class CalendarViewModel @Inject constructor(
 
             // 유효성 검사
             when {
+                state.selectedFrom == state.selectedTo -> {
+                    _uiState.value = _uiState.value.copy(
+                        errorMessage = "출발지와 도착지가 같습니다"
+                    )
+                    return@launch
+                }
                 state.selectedDays.isEmpty() -> {
                     _uiState.value = _uiState.value.copy(
                         errorMessage = "요일을 선택해주세요"
@@ -190,12 +194,6 @@ class CalendarViewModel @Inject constructor(
                 state.selectedTimes.isEmpty() -> {
                     _uiState.value = _uiState.value.copy(
                         errorMessage = "시간을 선택해주세요"
-                    )
-                    return@launch
-                }
-                state.selectedFrom == state.selectedTo -> {
-                    _uiState.value = _uiState.value.copy(
-                        errorMessage = "출발지와 도착지가 같습니다"
                     )
                     return@launch
                 }
@@ -216,12 +214,12 @@ class CalendarViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     selectedDays = emptyList(),
                     selectedTimes = emptyList(),
-                    scheduleType = "등교",
                     selectedFrom = if (currentLocations.isNotEmpty()) currentLocations.first() else "",
                     selectedTo = if (currentLocations.size > 1) currentLocations[1] else if (currentLocations.isNotEmpty()) currentLocations.first() else "",
                     isLoading = false,
                     errorMessage = null
                 )
+                loadTimesForRoute()
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -278,10 +276,10 @@ class CalendarViewModel @Inject constructor(
             editingReservationId = null,
             selectedDays = emptyList(),
             selectedTimes = emptyList(),
-            scheduleType = "등교",
             selectedFrom = if (currentLocations.isNotEmpty()) currentLocations.first() else "",
             selectedTo = if (currentLocations.size > 1) currentLocations[1] else if (currentLocations.isNotEmpty()) currentLocations.first() else ""
         )
+        loadTimesForRoute()
     }
 
     fun updateReservation() {
@@ -291,6 +289,12 @@ class CalendarViewModel @Inject constructor(
 
             // 유효성 검사
             when {
+                state.selectedFrom == state.selectedTo -> {
+                    _uiState.value = _uiState.value.copy(
+                        errorMessage = "출발지와 도착지가 같습니다"
+                    )
+                    return@launch
+                }
                 state.selectedDays.isEmpty() -> {
                     _uiState.value = _uiState.value.copy(
                         errorMessage = "요일을 선택해주세요"
@@ -300,12 +304,6 @@ class CalendarViewModel @Inject constructor(
                 state.selectedTimes.isEmpty() -> {
                     _uiState.value = _uiState.value.copy(
                         errorMessage = "시간을 선택해주세요"
-                    )
-                    return@launch
-                }
-                state.selectedFrom == state.selectedTo -> {
-                    _uiState.value = _uiState.value.copy(
-                        errorMessage = "출발지와 도착지가 같습니다"
                     )
                     return@launch
                 }
@@ -328,12 +326,12 @@ class CalendarViewModel @Inject constructor(
                     editingReservationId = null,
                     selectedDays = emptyList(),
                     selectedTimes = emptyList(),
-                    scheduleType = "등교",
                     selectedFrom = if (currentLocations.isNotEmpty()) currentLocations.first() else "",
                     selectedTo = if (currentLocations.size > 1) currentLocations[1] else if (currentLocations.isNotEmpty()) currentLocations.first() else "",
                     isLoading = false,
                     errorMessage = null
                 )
+                loadTimesForRoute()
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,

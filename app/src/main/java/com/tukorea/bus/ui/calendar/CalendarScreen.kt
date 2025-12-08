@@ -189,7 +189,6 @@ fun CalendarScreen(
     val locations = remember(uiState.locations) { uiState.locations }
     val selectedDays = remember(uiState.selectedDays) { uiState.selectedDays }
     val selectedTimes = remember(uiState.selectedTimes) { uiState.selectedTimes }
-    val scheduleType = remember(uiState.scheduleType) { uiState.scheduleType }
     val selectedFrom = remember(uiState.selectedFrom) { uiState.selectedFrom }
     val selectedTo = remember(uiState.selectedTo) { uiState.selectedTo }
     val reservations = remember(uiState.reservations) { uiState.reservations }
@@ -215,21 +214,31 @@ fun CalendarScreen(
 
     Scaffold(
         snackbarHost = {
-            SnackbarHost(
-                hostState = snackbarHostState,
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .wrapContentSize(Alignment.Center)
-            ) { data ->
-                Snackbar(
-                    snackbarData = data,
-                    modifier = Modifier
-                        .wrapContentWidth()
-                        .padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(24.dp),
-                    containerColor = Gray900,
-                    contentColor = Color.White
-                )
+                    .wrapContentHeight(Alignment.Bottom)
+                    .padding(bottom = 0.dp),
+                contentAlignment = Alignment.BottomCenter
+            ) {
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                ) { data ->
+                    Surface(
+                        modifier = Modifier.wrapContentWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        color = Gray900,
+                        shadowElevation = 4.dp
+                    ) {
+                        Text(
+                            text = data.visuals.message,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White
+                        )
+                    }
+                }
             }
         },
         containerColor = Gray50
@@ -277,7 +286,7 @@ fun CalendarScreen(
                         verticalArrangement = Arrangement.spacedBy(26.dp)
                     ) {
                         Text(
-                            text = "날짜를 선택해주세요",
+                            text = "요일을 선택해주세요",
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
                             color = Gray900
@@ -338,43 +347,111 @@ fun CalendarScreen(
                             }
                         }
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                        // 출발지
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Text(
-                                text = "시간 선택",
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = Gray900
+                                text = "출발지",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Gray700
                             )
-
-                            Surface(
-                                onClick = { viewModel.toggleScheduleType() },
-                                shape = RoundedCornerShape(20.dp),
-                                color = if (scheduleType == "등교") Color(0xFF4A90E2) else Color(0xFFE74C3C)
+                            var expandedFrom by remember { mutableStateOf(false) }
+                            ExposedDropdownMenuBox(
+                                expanded = expandedFrom,
+                                onExpandedChange = { expandedFrom = it }
                             ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                OutlinedTextField(
+                                    value = selectedFrom,
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .menuAnchor(),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedContainerColor = Color.White,
+                                        unfocusedContainerColor = Color.White
+                                    ),
+                                    trailingIcon = {
+                                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedFrom)
+                                    }
+                                )
+                                ExposedDropdownMenu(
+                                    expanded = expandedFrom,
+                                    onDismissRequest = { expandedFrom = false },
+                                    modifier = Modifier.background(Color.White)
                                 ) {
-                                    Text(
-                                        text = scheduleType,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White
-                                    )
-                                    Icon(
-                                        imageVector = Icons.Default.SwapHoriz,
-                                        contentDescription = "타입 변경",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(14.dp)
-                                    )
+                                    locations.forEach { location ->
+                                        DropdownMenuItem(
+                                            text = { Text(location) },
+                                            onClick = {
+                                                viewModel.selectFrom(location)
+                                                expandedFrom = false
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
+
+                        // 도착지
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Text(
+                                text = "도착지",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Gray700
+                            )
+                            var expandedTo by remember { mutableStateOf(false) }
+                            ExposedDropdownMenuBox(
+                                expanded = expandedTo,
+                                onExpandedChange = { expandedTo = it }
+                            ) {
+                                OutlinedTextField(
+                                    value = selectedTo,
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .menuAnchor(),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedContainerColor = Color.White,
+                                        unfocusedContainerColor = Color.White
+                                    ),
+                                    trailingIcon = {
+                                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTo)
+                                    }
+                                )
+                                ExposedDropdownMenu(
+                                    expanded = expandedTo,
+                                    onDismissRequest = { expandedTo = false },
+                                    modifier = Modifier.background(Color.White)
+                                ) {
+                                    locations.filter { it != selectedFrom }
+                                        .forEach { location ->
+                                            DropdownMenuItem(
+                                                text = { Text(location) },
+                                                onClick = {
+                                                    viewModel.selectTo(location)
+                                                    expandedTo = false
+                                                }
+                                            )
+                                        }
+                                }
+                            }
+                        }
+
+                        Text(
+                            text = "시간 선택",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Gray900
+                        )
 
                         Surface(
                             modifier = Modifier
@@ -401,11 +478,7 @@ fun CalendarScreen(
                                     val isPressed by interactionSource.collectIsPressedAsState()
 
                                     val backgroundColor: Color by animateColorAsState(
-                                        targetValue = if (isSelected) {
-                                            if (scheduleType == "등교") Color(0xFF4A90E2) else Color(0xFFE74C3C)
-                                        } else {
-                                            Color.White
-                                        },
+                                        targetValue = if (isSelected) PrimaryBlue else Color.White,
                                         animationSpec = tween(durationMillis = 200),
                                         label = "time_button_background"
                                     )
@@ -470,104 +543,6 @@ fun CalendarScreen(
                             Column(
                                 verticalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
-                                // 출발지
-                                Column(
-                                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    Text(
-                                        text = "출발지",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = Gray700
-                                    )
-                                    var expandedFrom by remember { mutableStateOf(false) }
-                                    ExposedDropdownMenuBox(
-                                        expanded = expandedFrom,
-                                        onExpandedChange = { expandedFrom = it }
-                                    ) {
-                                        OutlinedTextField(
-                                            value = selectedFrom,
-                                            onValueChange = {},
-                                            readOnly = true,
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .menuAnchor(),
-                                            shape = RoundedCornerShape(12.dp),
-                                            colors = OutlinedTextFieldDefaults.colors(
-                                                focusedContainerColor = Color.White,
-                                                unfocusedContainerColor = Color.White
-                                            ),
-                                            trailingIcon = {
-                                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedFrom)
-                                            }
-                                        )
-                                        ExposedDropdownMenu(
-                                            expanded = expandedFrom,
-                                            onDismissRequest = { expandedFrom = false },
-                                            modifier = Modifier.background(Color.White)
-                                        ) {
-                                            locations.forEach { location ->
-                                                DropdownMenuItem(
-                                                    text = { Text(location) },
-                                                    onClick = {
-                                                        viewModel.selectFrom(location)
-                                                        expandedFrom = false
-                                                    }
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-
-                                Column(
-                                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    Text(
-                                        text = "도착지",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = Gray700
-                                    )
-                                    var expandedTo by remember { mutableStateOf(false) }
-                                    ExposedDropdownMenuBox(
-                                        expanded = expandedTo,
-                                        onExpandedChange = { expandedTo = it }
-                                    ) {
-                                        OutlinedTextField(
-                                            value = selectedTo,
-                                            onValueChange = {},
-                                            readOnly = true,
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .menuAnchor(),
-                                            shape = RoundedCornerShape(12.dp),
-                                            colors = OutlinedTextFieldDefaults.colors(
-                                                focusedContainerColor = Color.White,
-                                                unfocusedContainerColor = Color.White
-                                            ),
-                                            trailingIcon = {
-                                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTo)
-                                            }
-                                        )
-                                        ExposedDropdownMenu(
-                                            expanded = expandedTo,
-                                            onDismissRequest = { expandedTo = false },
-                                            modifier = Modifier.background(Color.White)
-                                        ) {
-                                            locations.filter { it != selectedFrom }
-                                                .forEach { location ->
-                                                    DropdownMenuItem(
-                                                        text = { Text(location) },
-                                                        onClick = {
-                                                            viewModel.selectTo(location)
-                                                            expandedTo = false
-                                                        }
-                                                    )
-                                                }
-                                        }
-                                    }
-                                }
-
                                 Spacer(modifier = Modifier.height(8.dp))
 
                                 // 수정 모드일 때는 수정/취소 버튼, 아닐 때는 추가 버튼
