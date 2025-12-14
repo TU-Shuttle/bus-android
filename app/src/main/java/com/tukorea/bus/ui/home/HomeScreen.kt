@@ -1,7 +1,12 @@
 package com.tukorea.bus.ui.home
 
 import android.Manifest
+import android.content.Intent
+import android.os.Build
 import androidx.compose.animation.core.*
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import com.tukorea.bus.service.LocationService
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -54,16 +59,29 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val mapState by mapViewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    val locationPermissions = mutableListOf(
+        Manifest.permission.ACCESS_FINE_LOCATION,
+        Manifest.permission.ACCESS_COARSE_LOCATION
+    )
+
+    // Android 10 이상에서는 백그라운드 위치 권한 추가
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        locationPermissions.add(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+    }
 
     val locationPermissionsState = rememberMultiplePermissionsState(
-        permissions = listOf(
-            Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION
-        )
+        permissions = locationPermissions
     )
 
     LaunchedEffect(locationPermissionsState.allPermissionsGranted) {
         if (locationPermissionsState.allPermissionsGranted) {
             mapViewModel.onLocationPermissionGranted()
+
+            // 백그라운드 위치 서비스 시작
+            val serviceIntent = Intent(context, LocationService::class.java)
+            ContextCompat.startForegroundService(context, serviceIntent)
         }
     }
 
@@ -361,6 +379,10 @@ fun BottomModal(
                         runningBusesCount = runningBusesCount,
                         waitingBusesCount = waitingBusesCount
                     )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    BusStopLocationInfo()
 
                     // 하단 여백 추가 (콘텐츠가 잘리지 않도록)
                     Spacer(modifier = Modifier.height(24.dp))
@@ -817,6 +839,114 @@ fun RowScope.InfoCard(label: String, value: String, color: Color) {
                 fontWeight = FontWeight.Bold,
                 color = color
             )
+        }
+    }
+}
+
+@Composable
+fun BusStopLocationInfo() {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Text(
+            text = "버스 정류장 위치",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = Gray900
+        )
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color.White
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // 정왕역
+                BusStopLocationItem(
+                    title = "정왕역",
+                    locations = listOf(
+                        "본교 방향: 서툴 탑승장 (17시 이후)",
+                        "제2캠퍼스 방향: 꽃집 앞"
+                    )
+                )
+
+                Divider(color = Gray200)
+
+                // 제1캠퍼스
+                BusStopLocationItem(
+                    title = "제1캠퍼스",
+                    locations = listOf(
+                        "정왕역 방향: 하교 탑승장소",
+                        "제2캠퍼스 방향: 제2캠퍼스 방향 탑승장소"
+                    )
+                )
+
+                Divider(color = Gray200)
+
+                // 제2캠퍼스
+                BusStopLocationItem(
+                    title = "제2캠퍼스",
+                    locations = listOf(
+                        "본교/정왕역 방향: 제2캠퍼스 정문"
+                    )
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun BusStopLocationItem(
+    title: String,
+    locations: List<String>
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Place,
+                contentDescription = null,
+                tint = PrimaryBlue,
+                modifier = Modifier.size(20.dp)
+            )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Gray900
+            )
+        }
+
+        locations.forEach { location ->
+            Row(
+                modifier = Modifier.padding(start = 28.dp),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .size(4.dp)
+                        .background(Gray500, CircleShape)
+                )
+                Text(
+                    text = location,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Gray700
+                )
+            }
         }
     }
 }
