@@ -13,10 +13,8 @@ import com.tukorea.bus.ui.map.MapScreen
 import com.tukorea.bus.ui.notifications.NotificationDetailScreen
 import com.tukorea.bus.ui.notifications.NotificationsScreen
 import com.tukorea.bus.ui.quickride.QuickRideScreen
-import com.tukorea.bus.ui.realtime.RealtimeScreen
 import com.tukorea.bus.ui.ride.RideScreen
 import com.tukorea.bus.ui.settings.SettingsScreen
-import com.tukorea.bus.ui.stations.StationsScreen
 import com.tukorea.bus.ui.temp.TempScreen
 
 @Composable
@@ -46,17 +44,6 @@ fun BusNavGraph(
                 onNavigateTo = { route ->
                     navController.navigate(route) {
                         popUpTo(Screen.Calendar.route) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                }
-            )
-        }
-        composable(Screen.Stations.route) {
-            StationsScreen(
-                onNavigateTo = { route ->
-                    navController.navigate(route) {
-                        popUpTo(Screen.Stations.route) { saveState = true }
                         launchSingleTop = true
                         restoreState = true
                     }
@@ -95,17 +82,6 @@ fun BusNavGraph(
         }
         composable(Screen.Settings.route) {
             SettingsScreen()
-        }
-        composable(Screen.Realtime.route) {
-            RealtimeScreen(
-                onNavigateTo = { route ->
-                    navController.navigate(route) {
-                        popUpTo(Screen.Realtime.route) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                }
-            )
         }
         composable(Screen.Ride.route) {
             RideScreen(

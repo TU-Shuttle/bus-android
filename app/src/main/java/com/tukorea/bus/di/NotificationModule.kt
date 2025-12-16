@@ -3,6 +3,7 @@ package com.tukorea.bus.di
 import com.tukorea.bus.data.repository.NotificationRepositoryImpl
 import com.tukorea.bus.domain.repository.NotificationRepository
 import com.tukorea.bus.domain.usecase.GetNotificationsUseCase
+import com.tukorea.bus.domain.usecase.GetUnreadImportantNotificationsUseCase
 import com.tukorea.bus.domain.usecase.MarkAllNotificationsAsReadUseCase
 import com.tukorea.bus.domain.usecase.MarkNotificationAsReadUseCase
 import dagger.Module
@@ -38,5 +39,10 @@ object NotificationModule {
     fun provideMarkAllNotificationsAsReadUseCase(
         repository: NotificationRepository
     ): MarkAllNotificationsAsReadUseCase = MarkAllNotificationsAsReadUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideGetUnreadImportantNotificationsUseCase(): GetUnreadImportantNotificationsUseCase =
+        GetUnreadImportantNotificationsUseCase()
 }
 

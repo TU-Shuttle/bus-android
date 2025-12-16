@@ -3,8 +3,6 @@ package com.tukorea.bus.ui.ride
 import android.Manifest
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,24 +19,17 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import com.tukorea.bus.ui.common.BottomModal
 import com.tukorea.bus.ui.map.MapViewModel
 import com.tukorea.bus.ui.map.NaverMapView
 import com.tukorea.bus.ui.navigation.Screen
 import com.tukorea.bus.ui.theme.*
-import kotlinx.coroutines.launch
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.rememberDraggableState
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.unit.IntOffset
-import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
+import com.tukorea.bus.R
 
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
@@ -67,30 +58,10 @@ fun RideScreen(
         }
     }
 
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     val density = LocalDensity.current
-    val scope = rememberCoroutineScope()
-
-    var sheetHeightPx by remember { mutableStateOf(0f) }
-
-    val peekHeightPx = with(density) { 96.dp.toPx() }
-
-    val expandedOffsetPx = with(density) { 32.dp.toPx() }
-
-    val collapsedOffsetPx = remember(sheetHeightPx, peekHeightPx, expandedOffsetPx) {
-        (sheetHeightPx - peekHeightPx)
-            .coerceAtLeast(expandedOffsetPx)
-    }
-
-    var sheetOffset by remember { mutableStateOf(collapsedOffsetPx) }
-
-    val draggableState = rememberDraggableState { delta ->
-        val newOffset = (sheetOffset + delta)
-            .coerceIn(expandedOffsetPx, collapsedOffsetPx)
-        sheetOffset = newOffset
-    }
 
     Box(modifier = Modifier.fillMaxSize()) {
-
         NaverMapView(
             modifier = Modifier.fillMaxSize(),
             currentLocation = mapState.currentLocation,
@@ -115,38 +86,19 @@ fun RideScreen(
         ) {
             Icon(
                 imageVector = Icons.Default.MyLocation,
-                contentDescription = "현재 위치",
+                contentDescription = stringResource(id = R.string.ride_my_location_cd),
                 tint = Gray700
             )
         }
 
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .onGloballyPositioned { layoutCoordinates ->
-                    sheetHeightPx = layoutCoordinates.size.height.toFloat()
-                }
-                .offset { IntOffset(0, sheetOffset.roundToInt()) }
-                .draggable(
-                    state = draggableState,
-                    orientation = Orientation.Vertical,
-                    onDragStopped = {
-                        val mid = (expandedOffsetPx + collapsedOffsetPx) / 2f
-                        val target =
-                            if (sheetOffset < mid) expandedOffsetPx else collapsedOffsetPx
-
-                        scope.launch {
-                            val anim = Animatable(sheetOffset)
-                            anim.animateTo(
-                                target,
-                                animationSpec = tween(durationMillis = 220)
-                            )
-                            sheetOffset = anim.value
-                        }
-                    }
-                )
+        BottomModal(
+            modalHeight = uiState.modalHeight,
+            onModalHeightChange = viewModel::updateModalHeight,
+            screenHeight = screenHeight,
+            density = density,
+            isVisible = true
         ) {
-            RideInfoModal(
+            RideInfoContent(
                 remainingMinutes = remainingMinutes,
                 departureStation = uiState.departureStation,
                 departureTime = uiState.departureTime,
@@ -155,30 +107,14 @@ fun RideScreen(
                 busStatus = busStatus,
                 onBoardingStationClick = { /* TODO */ },
                 onStatusClick = { /* TODO */ },
-                onHomeClick = { onNavigateTo(Screen.Home.route) },
-                onClose = {
-                    val target =
-                        if (sheetOffset <= (expandedOffsetPx + collapsedOffsetPx) / 2f)
-                            collapsedOffsetPx
-                        else
-                            expandedOffsetPx
-
-                    scope.launch {
-                        val anim = Animatable(sheetOffset)
-                        anim.animateTo(
-                            target,
-                            animationSpec = tween(durationMillis = 220)
-                        )
-                        sheetOffset = anim.value
-                    }
-                }
+                onHomeClick = { onNavigateTo(Screen.Home.route) }
             )
         }
     }
 }
 
 @Composable
-fun RideInfoModal(
+fun RideInfoContent(
     remainingMinutes: Int,
     departureStation: String,
     departureTime: String,
@@ -187,49 +123,23 @@ fun RideInfoModal(
     busStatus: String,
     onBoardingStationClick: () -> Unit,
     onStatusClick: () -> Unit,
-    onHomeClick: () -> Unit,
-    onClose: () -> Unit = {},
-    modifier: Modifier = Modifier
-
+    onHomeClick: () -> Unit
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        color = White,
-        shadowElevation = 16.dp
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .width(40.dp)
-                    .height(4.dp)
-                    .background(Gray300, RoundedCornerShape(2.dp))
-                    .align(Alignment.CenterHorizontally)
-                    .clickable { onClose() }
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    val arrivalText = if (remainingMinutes > 0) {
+                        stringResource(id = R.string.ride_arrival_in_minutes, remainingMinutes)
+                    } else {
+                        stringResource(id = R.string.ride_arrival_soon)
+                    }
                     Text(
-                        text = if (remainingMinutes > 0) "${remainingMinutes}분" else "곧",
-                        style = MaterialTheme.typography.displaySmall,
-                        fontWeight = FontWeight.Bold,
-                        color = PrimaryBlue
-                    )
-                    Text(
-                        text = " 후 도착",
+                        text = arrivalText,
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = Gray900
@@ -252,182 +162,179 @@ fun RideInfoModal(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "탑승정류장",
+                        text = stringResource(id = R.string.ride_boarding_station),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+    Spacer(modifier = Modifier.height(24.dp))
 
-            Surface(
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = Gray50,
+        border = BorderStroke(1.dp, Gray200)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                color = Gray50,
-                border = BorderStroke(1.dp, Gray200)
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
+                Column {
+                    Text(
+                        text = departureStation,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = Gray600
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = departureTime,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Gray900
+                    )
+                }
+
+                Canvas(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(20.dp)
+                        .padding(horizontal = 16.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = departureStation,
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Medium,
-                                color = Gray600
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = departureTime,
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = Gray900
-                            )
-                        }
+                    val dashWidth = 8f
+                    val dashGap = 6f
+                    val pathEffect = PathEffect.dashPathEffect(
+                        floatArrayOf(dashWidth, dashGap),
+                        0f
+                    )
 
-                        Canvas(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(20.dp)
-                                .padding(horizontal = 16.dp)
-                        ) {
-                            val dashWidth = 8f
-                            val dashGap = 6f
-                            val pathEffect = PathEffect.dashPathEffect(
-                                floatArrayOf(dashWidth, dashGap),
-                                0f
-                            )
+                    drawLine(
+                        color = Gray400,
+                        start = Offset(0f, size.height / 2),
+                        end = Offset(size.width, size.height / 2),
+                        strokeWidth = 2f,
+                        pathEffect = pathEffect
+                    )
 
-                            drawLine(
-                                color = Gray400,
-                                start = Offset(0f, size.height / 2),
-                                end = Offset(size.width, size.height / 2),
-                                strokeWidth = 2f,
-                                pathEffect = pathEffect
-                            )
+                    drawLine(
+                        color = PrimaryBlue,
+                        start = Offset(0f, size.height / 2),
+                        end = Offset(size.width * 0.3f, size.height / 2),
+                        strokeWidth = 3f
+                    )
 
-                            drawLine(
-                                color = PrimaryBlue,
-                                start = Offset(0f, size.height / 2),
-                                end = Offset(size.width * 0.3f, size.height / 2),
-                                strokeWidth = 3f
-                            )
+                    drawCircle(
+                        color = PrimaryBlue,
+                        radius = 6f,
+                        center = Offset(size.width * 0.3f, size.height / 2)
+                    )
+                }
 
-                            drawCircle(
-                                color = PrimaryBlue,
-                                radius = 6f,
-                                center = Offset(size.width * 0.3f, size.height / 2)
-                            )
-                        }
-
-                        Column(
-                            horizontalAlignment = Alignment.End
-                        ) {
-                            Text(
-                                text = arrivalStation,
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Medium,
-                                color = Gray600
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = arrivalTime,
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = Gray900
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = Blue50
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.DirectionsBus,
-                                    contentDescription = null,
-                                    modifier = Modifier.padding(8.dp),
-                                    tint = PrimaryBlue
-                                )
-                            }
-
-                            Column {
-                                Text(
-                                    text = "셔틀버스",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Gray900
-                                )
-                                Text(
-                                    text = "A노선",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = Gray500
-                                )
-                            }
-                        }
-                        
-                        TextButton(
-                            onClick = onStatusClick,
-                            colors = ButtonDefaults.textButtonColors(
-                                contentColor = PrimaryBlue
-                            )
-                        ) {
-                            Text(
-                                text = "상태",
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
+                Column(
+                    horizontalAlignment = Alignment.End
+                ) {
+                    Text(
+                        text = arrivalStation,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = Gray600
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = arrivalTime,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Gray900
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
-
-            OutlinedButton(
-                onClick = onHomeClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = Gray700
-                ),
-                border = BorderStroke(1.5.dp, Gray200)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Home,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "셔틀버스 홈으로",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-
             Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Blue50
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DirectionsBus,
+                            contentDescription = null,
+                            modifier = Modifier.padding(8.dp),
+                            tint = PrimaryBlue
+                        )
+                    }
+
+                    Column {
+                        Text(
+                            text = stringResource(id = R.string.ride_bus_title),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Gray900
+                        )
+                        Text(
+                            text = stringResource(id = R.string.ride_bus_route_label),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Gray500
+                        )
+                    }
+                }
+                
+                TextButton(
+                    onClick = onStatusClick,
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = PrimaryBlue
+                    )
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.ride_status_button),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
         }
     }
+
+    Spacer(modifier = Modifier.height(20.dp))
+
+    OutlinedButton(
+        onClick = onHomeClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp),
+        shape = RoundedCornerShape(14.dp),
+        colors = ButtonDefaults.outlinedButtonColors(
+            contentColor = Gray700
+        ),
+        border = BorderStroke(1.5.dp, Gray200)
+    ) {
+        Icon(
+            imageVector = Icons.Default.Home,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = stringResource(id = R.string.ride_home_button),
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+
+    Spacer(modifier = Modifier.height(16.dp))
 }
 
 @Preview(showBackground = true)
@@ -440,9 +347,9 @@ private fun RideScreenPreview() {
 
 @Preview(showBackground = true)
 @Composable
-private fun RideInfoModalPreview() {
+private fun RideInfoContentPreview() {
     BusTheme {
-        RideInfoModal(
+        RideInfoContent(
             remainingMinutes = 5,
             departureStation = "정왕역",
             departureTime = "0:30 AM",

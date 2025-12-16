@@ -19,6 +19,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import androidx.annotation.StringRes
+import com.tukorea.bus.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tukorea.bus.domain.model.Notification
@@ -47,7 +50,7 @@ fun NotificationDetailScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "알림 상세",
+                        text = stringResource(id = R.string.notification_detail_title),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -56,7 +59,7 @@ fun NotificationDetailScreen(
                     IconButton(onClick = onBackPress) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "뒤로 가기"
+                            contentDescription = stringResource(id = R.string.notification_detail_back_cd)
                         )
                     }
                 },
@@ -89,7 +92,7 @@ fun NotificationDetailScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "알림을 찾을 수 없습니다",
+                        text = stringResource(id = R.string.notification_not_found),
                         style = MaterialTheme.typography.bodyLarge,
                         color = Gray600
                     )
@@ -105,43 +108,45 @@ private fun NotificationDetailContent(
     modifier: Modifier = Modifier
 ) {
     val config = remember(notification.type) {
-        when (notification.type) {
-            NotificationType.WARNING -> NotificationDetailConfig(
-                icon = Icons.Default.Notifications,
-                bgColor = Orange100,
-                iconColor = Orange600,
-                borderColor = Orange600,
-                typeText = "중요 공지"
-            )
-            NotificationType.BUS -> NotificationDetailConfig(
-                icon = Icons.Default.DirectionsTransit,
-                bgColor = Blue100,
-                iconColor = PrimaryBlue,
-                borderColor = PrimaryBlue,
-                typeText = "버스 운행"
-            )
-            NotificationType.INFO -> NotificationDetailConfig(
-                icon = Icons.Default.Info,
-                bgColor = Gray100,
-                iconColor = Gray600,
-                borderColor = Gray300,
-                typeText = "일반 안내"
-            )
-            NotificationType.SUCCESS -> NotificationDetailConfig(
-                icon = Icons.Default.DateRange,
-                bgColor = Green100,
-                iconColor = Green600,
-                borderColor = Green600,
-                typeText = "예약 안내"
-            )
-            NotificationType.SYSTEM -> NotificationDetailConfig(
-                icon = Icons.Default.Settings,
-                bgColor = Gray100,
-                iconColor = Gray600,
-                borderColor = Gray300,
-                typeText = "시스템"
-            )
+        val typeTextResId = when (notification.type) {
+            NotificationType.WARNING -> R.string.notification_type_warning
+            NotificationType.BUS -> R.string.notification_type_bus
+            NotificationType.INFO -> R.string.notification_type_info
+            NotificationType.SUCCESS -> R.string.notification_type_success
+            NotificationType.SYSTEM -> R.string.notification_type_system
         }
+
+        NotificationDetailConfig(
+            icon = when (notification.type) {
+                NotificationType.WARNING -> Icons.Default.Notifications
+                NotificationType.BUS -> Icons.Default.DirectionsTransit
+                NotificationType.INFO -> Icons.Default.Info
+                NotificationType.SUCCESS -> Icons.Default.DateRange
+                NotificationType.SYSTEM -> Icons.Default.Settings
+            },
+            bgColor = when (notification.type) {
+                NotificationType.WARNING -> Orange100
+                NotificationType.BUS -> Blue100
+                NotificationType.INFO -> Gray100
+                NotificationType.SUCCESS -> Green100
+                NotificationType.SYSTEM -> Gray100
+            },
+            iconColor = when (notification.type) {
+                NotificationType.WARNING -> Orange600
+                NotificationType.BUS -> PrimaryBlue
+                NotificationType.INFO -> Gray600
+                NotificationType.SUCCESS -> Green600
+                NotificationType.SYSTEM -> Gray600
+            },
+            borderColor = when (notification.type) {
+                NotificationType.WARNING -> Orange600
+                NotificationType.BUS -> PrimaryBlue
+                NotificationType.INFO -> Gray300
+                NotificationType.SUCCESS -> Green600
+                NotificationType.SYSTEM -> Gray300
+            },
+            typeTextResId = typeTextResId
+        )
     }
 
     Column(
@@ -168,7 +173,7 @@ private fun NotificationDetailContent(
                     tint = config.iconColor
                 )
                 Text(
-                    text = config.typeText,
+                    text = stringResource(id = config.typeTextResId),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = config.iconColor
@@ -237,7 +242,7 @@ private fun NotificationDetailContent(
                         modifier = Modifier.size(20.dp)
                     )
                     Text(
-                        text = "이 알림은 중요 공지사항입니다. 반드시 확인해주세요.",
+                    text = stringResource(id = R.string.notification_important_notice),
                         style = MaterialTheme.typography.bodyMedium,
                         color = Orange700,
                         lineHeight = 20.sp
@@ -255,7 +260,7 @@ private data class NotificationDetailConfig(
     val bgColor: Color,
     val iconColor: Color,
     val borderColor: Color,
-    val typeText: String
+    @StringRes val typeTextResId: Int
 )
 
 @Preview(showBackground = true)

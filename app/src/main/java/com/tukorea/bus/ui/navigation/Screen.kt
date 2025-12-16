@@ -14,7 +14,6 @@ sealed class Screen(val route: String) {
         fun createRoute(notificationId: Int) = "notification_detail/$notificationId"
     }
     data object Settings : Screen("settings")
-    data object Realtime : Screen("realtime")
     data object Ride : Screen("ride")
     data object Temp : Screen("temp")
 }
