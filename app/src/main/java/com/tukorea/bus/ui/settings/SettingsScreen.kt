@@ -9,7 +9,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Help
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Card
@@ -33,6 +32,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tukorea.bus.ui.theme.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.runtime.remember
+import androidx.compose.ui.res.stringResource
+import com.tukorea.bus.R
 
 @Composable
 fun SettingsScreen(
@@ -53,21 +54,10 @@ fun SettingsScreen(
         SettingsHeader()
 
         SettingsContent(
-            appVersion = uiState.appVersion,
             isPushEnabled = uiState.isPushNotificationEnabled,
             isReservationEnabled = uiState.isReservationNotificationEnabled,
             onPushToggle = { enabled -> viewModel.onPushNotificationChanged(enabled) },
-            onReservationToggle = { enabled -> viewModel.onReservationNotificationChanged(enabled) },
-            onItemClick = { itemId ->
-                when (itemId) {
-                    "app_info" -> {
-                        // TODO: 앱 정보 화면 이동 or Dialog
-                    }
-                    "help" -> {
-                        // TODO: 도움말 화면 이동
-                    }
-                }
-            }
+            onReservationToggle = { enabled -> viewModel.onReservationNotificationChanged(enabled) }
         )
     }
 }
@@ -75,7 +65,7 @@ fun SettingsScreen(
 @Composable
 private fun SettingsHeader() {
     Text(
-        text = "설정",
+        text = stringResource(id = R.string.settings_title),
         style = MaterialTheme.typography.headlineLarge,
         fontWeight = FontWeight.Bold,
         color = Gray900,
@@ -85,47 +75,38 @@ private fun SettingsHeader() {
 
 @Composable
 private fun SettingsContent(
-    appVersion: String,
     isPushEnabled: Boolean,
     isReservationEnabled: Boolean,
     onPushToggle: (Boolean) -> Unit,
-    onReservationToggle: (Boolean) -> Unit,
-    onItemClick: (String) -> Unit
+    onReservationToggle: (Boolean) -> Unit
 ) {
     // 알림 섹션 (토글)
-    SettingsSection(title = "알림") {
+    SettingsSection(title = stringResource(id = R.string.settings_section_notification)) {
         SettingsToggleRow(
             icon = Icons.Default.Notifications,
-            title = "푸시 알림",
-            subtitle = "버스 도착 알림을 받습니다",
+            title = stringResource(id = R.string.settings_push_title),
+            subtitle = stringResource(id = R.string.settings_push_subtitle),
             checked = isPushEnabled,
             onCheckedChange = onPushToggle,
             showDivider = true
         )
         SettingsToggleRow(
             icon = Icons.Default.Schedule,
-            title = "예약 알림",
-            subtitle = "예약된 시간 10분 전 알림",
+            title = stringResource(id = R.string.settings_reservation_title),
+            subtitle = stringResource(id = R.string.settings_reservation_subtitle),
             checked = isReservationEnabled,
             onCheckedChange = onReservationToggle,
             showDivider = false
         )
     }
 
-    // 기타 섹션 (클릭형)
-    SettingsSection(title = "기타") {
-        SettingsItemRow(
-            icon = Icons.Default.Info,
-            title = "앱 정보",
-            subtitle = "버전 $appVersion",
-            onClick = { onItemClick("app_info") },
-            showDivider = true
-        )
+    // 기타 섹션 (클릭형) - 앱 버전/앱 정보 항목 제거, 추후 필요 시 확장 가능
+    SettingsSection(title = stringResource(id = R.string.settings_section_etc)) {
         SettingsItemRow(
             icon = Icons.Default.Help,
-            title = "도움말",
+            title = stringResource(id = R.string.settings_help_title),
             subtitle = null,
-            onClick = { onItemClick("help") },
+            onClick = { /* TODO: 도움말 화면 이동이 필요하면 여기에서 처리 */ },
             showDivider = false
         )
     }
@@ -156,9 +137,6 @@ private fun SettingsSection(
     }
 }
 
-/**
- * 🔘 토글 타입 아이템 (푸시/예약 알림)
- */
 @Composable
 private fun SettingsToggleRow(
     icon: ImageVector,
