@@ -26,6 +26,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.tukorea.bus.R
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -115,7 +117,7 @@ fun MapScreen(
         ) {
             Icon(
                 imageVector = Icons.Default.MyLocation,
-                contentDescription = "현재 위치"
+                contentDescription = stringResource(id = R.string.map_my_location_cd)
             )
         }
     }

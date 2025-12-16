@@ -26,6 +26,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.tukorea.bus.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tukorea.bus.domain.model.Notification
@@ -105,14 +107,14 @@ private fun NotificationHeader(
     ) {
         Column {
             Text(
-                text = "알림",
+                text = stringResource(id = R.string.notifications_title),
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
                 color = Gray900
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = "공지사항 및 운행 안내",
+                text = stringResource(id = R.string.notifications_subtitle),
                 style = MaterialTheme.typography.bodyLarge,
                 color = Gray500
             )
@@ -127,16 +129,19 @@ private fun NotificationHeader(
 
 @Composable
 private fun MarkAllAsReadButton(onClick: () -> Unit) {
+    // 접근성 문구는 Composable 컨텍스트에서 먼저 계산
+    val contentDescriptionText = stringResource(id = R.string.notifications_mark_all_read_a11y)
+
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(20.dp),
         color = Blue50,
         modifier = Modifier.semantics {
-            contentDescription = "모든 알림을 읽음 상태로 표시"
+            contentDescription = contentDescriptionText
         }
     ) {
         Text(
-            text = "모두 읽음",
+            text = stringResource(id = R.string.notifications_mark_all_read),
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
             color = PrimaryBlue,

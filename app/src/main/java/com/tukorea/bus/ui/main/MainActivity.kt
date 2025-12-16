@@ -37,7 +37,7 @@ class MainActivity : ComponentActivity() {
 
                     Scaffold(
                         bottomBar = {
-                            if (currentRoute != Screen.Realtime.route && currentRoute != Screen.Ride.route) {
+                            if (currentRoute != Screen.Ride.route) {
                                 BottomNavigationBar(
                                     currentRoute = currentRoute,
                                     onNavigate = { route ->

@@ -10,7 +10,7 @@ data class CalendarUiState(
     val selectedFrom: String = "",
     val selectedTo: String = "",
     val isLoading: Boolean = false,
-    val errorMessage: String? = null,
+    val error: String? = null,
     val days: List<String> = emptyList(),
     val times: List<String> = emptyList(),
     val locations: List<String> = emptyList(),

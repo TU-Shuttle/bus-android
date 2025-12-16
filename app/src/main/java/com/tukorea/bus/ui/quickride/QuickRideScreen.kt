@@ -4,7 +4,6 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
@@ -23,14 +22,20 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.tukorea.bus.R
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
+import com.tukorea.bus.domain.model.RouteScheduleTemplate
 import com.tukorea.bus.ui.navigation.Screen
 import com.tukorea.bus.ui.theme.*
 
@@ -41,11 +46,13 @@ fun QuickRideScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val destinations = remember(uiState.destinations) { uiState.destinations }
-    var showTimeTable by remember { mutableStateOf(false) }
 
     val availableBuses = remember(uiState.availableBuses) { uiState.availableBuses }
     val currentLocation = remember(uiState.currentLocation) { uiState.currentLocation }
     val selectedDestination = remember(uiState.selectedDestination) { uiState.selectedDestination }
+
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+    val density = LocalDensity.current
 
     Box(
         modifier = Modifier
@@ -64,14 +71,14 @@ fun QuickRideScreen(
                 modifier = Modifier.padding(bottom = 20.dp)
             ) {
                 Text(
-                    text = "바로 탑승",
+                    text = stringResource(id = R.string.quickride_title),
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.Bold,
                     color = Gray900
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "현재 위치에서 바로 탑승",
+                    text = stringResource(id = R.string.quickride_subtitle),
                     style = MaterialTheme.typography.bodyLarge,
                     color = Gray500
                 )
@@ -97,7 +104,7 @@ fun QuickRideScreen(
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Text(
-                            text = "현재 위치",
+                            text = stringResource(id = R.string.quickride_current_location_label),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold,
                             color = Gray700
@@ -142,7 +149,7 @@ fun QuickRideScreen(
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Text(
-                            text = "목적지",
+                            text = stringResource(id = R.string.quickride_destination_label),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold,
                             color = Gray700
@@ -201,7 +208,7 @@ fun QuickRideScreen(
                     }
 
                     OutlinedButton(
-                        onClick = { showTimeTable = true },
+                        onClick = { viewModel.toggleTimeTable() },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp),
@@ -218,7 +225,7 @@ fun QuickRideScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "전체 시간표 보기",
+                            text = stringResource(id = R.string.quickride_view_full_timetable),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -234,7 +241,7 @@ fun QuickRideScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "이용 가능한 버스",
+                    text = stringResource(id = R.string.quickride_available_buses_title),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = Gray900
@@ -243,7 +250,7 @@ fun QuickRideScreen(
                     shape = RoundedCornerShape(20.dp), color = Blue50
                 ) {
                     Text(
-                        text = "${availableBuses.size}개 노선",
+                        text = stringResource(id = R.string.quickride_available_buses_count, availableBuses.size),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = PrimaryBlue,
@@ -282,7 +289,7 @@ fun QuickRideScreen(
                             tint = Gray300
                         )
                         Text(
-                            text = "운행 중인 버스가 없습니다",
+                            text = stringResource(id = R.string.quickride_no_running_bus_title),
                             style = MaterialTheme.typography.bodyMedium,
                             color = Gray400
                         )
@@ -304,9 +311,13 @@ fun QuickRideScreen(
         }
     }
 
-    if (showTimeTable) {
+    if (uiState.showTimeTable) {
         TimeTableModal(
-            onDismiss = { showTimeTable = false })
+            routes = uiState.timetableRoutes,
+            onDismiss = { viewModel.toggleTimeTable() },
+            screenHeight = screenHeight,
+            density = density
+        )
     }
 }
 
@@ -326,20 +337,25 @@ fun BusCard(
         ), label = "bus_card_scale"
     )
 
-    val routeColor = remember(bus.route) {
-        when (bus.route) {
-            "A노선" -> Pair(Blue100, Blue700)
-            "B노선" -> Pair(Green100, Green700)
-            "순환" -> Pair(Orange100, Orange700)
-            else -> Pair(Blue100, Blue700)
+    val routeUi = remember(bus.route) { BusRouteUi.fromRaw(bus.route) }
+    val seatUi = remember(bus.seats) { SeatStatusUi.fromRaw(bus.seats) }
+
+    val routeColor = remember(routeUi) {
+        when (routeUi) {
+            BusRouteUi.A -> Pair(Blue100, Blue700)
+            BusRouteUi.B -> Pair(Green100, Green700)
+            BusRouteUi.C -> Pair(Orange100, Orange700)
+            BusRouteUi.LOOP -> Pair(Orange100, Orange700)
+            BusRouteUi.UNKNOWN -> Pair(Blue100, Blue700)
         }
     }
 
-    val seatsColor = remember(bus.seats) {
-        when (bus.seats) {
-            "여유" -> Pair(Green100, Green700)
-            "보통" -> Pair(Yellow100, Orange700)
-            else -> Pair(Red100, Red700)
+    val seatsColor = remember(seatUi) {
+        when (seatUi) {
+            SeatStatusUi.PLENTY -> Pair(Green100, Green700)
+            SeatStatusUi.NORMAL -> Pair(Yellow100, Orange700)
+            SeatStatusUi.CROWDED -> Pair(Red100, Red700)
+            SeatStatusUi.UNKNOWN -> Pair(Gray200, Gray500)
         }
     }
 
@@ -478,9 +494,49 @@ fun BusCard(
 
 @Composable
 fun TimeTableModal(
+    routes: List<RouteScheduleTemplate>,
+    onDismiss: () -> Unit,
+    screenHeight: Dp,
+    density: Density
+) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        // 배경 오버레이
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.6f))
+                .clickable { onDismiss() }
+        )
+
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(screenHeight * 0.75f)
+                .align(Alignment.BottomCenter),
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 16.dp
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+            ) {
+                TimeTableContent(
+                    routes = routes,
+                    onDismiss = onDismiss
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun TimeTableContent(
+    routes: List<RouteScheduleTemplate>,
     onDismiss: () -> Unit
 ) {
-    data class RouteSchedule(
+    data class RouteScheduleUi(
         val name: String,
         val color: Color,
         val bgColor: Color,
@@ -489,249 +545,187 @@ fun TimeTableModal(
         val afternoonTimes: List<String>
     )
 
-    val routes = remember {
-        listOf(
-            RouteSchedule(
-                name = "A노선",
-                color = PrimaryBlue,
-                bgColor = Blue50,
-                icon = Icons.Default.DirectionsBus,
-                morningTimes = listOf("09:00", "09:30", "10:00", "10:30", "11:00", "11:30"),
-                afternoonTimes = listOf(
-                    "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00"
+    // 도메인 모델(RouteScheduleTemplate)을 UI 전용 모델로 변환
+    val uiRoutes = remember(routes) {
+        routes.map { template ->
+            val (color, bgColor, icon) = when (template.name) {
+                "A노선" -> Triple(PrimaryBlue, Blue50, Icons.Default.DirectionsBus)
+                "B노선" -> Triple(Green600, Green50, Icons.Default.DirectionsBus)
+                "C노선" -> Triple(Orange600, Orange50, Icons.Default.DirectionsBus)
+                "순환" -> Triple(Gray700, Gray100, Icons.Default.Loop)
+                else -> Triple(PrimaryBlue, Blue50, Icons.Default.DirectionsBus)
+            }
+            RouteScheduleUi(
+                name = template.name,
+                color = color,
+                bgColor = bgColor,
+                icon = icon,
+                morningTimes = template.morningTimes,
+                afternoonTimes = template.afternoonTimes
                 )
-            ), RouteSchedule(
-                name = "B노선",
-                color = Green600,
-                bgColor = Green50,
-                icon = Icons.Default.DirectionsBus,
-                morningTimes = listOf("09:15", "09:45", "10:15", "10:45", "11:15", "11:45"),
-                afternoonTimes = listOf(
-                    "13:15", "13:45", "14:15", "14:45", "15:15", "15:45", "16:15", "16:45", "17:15"
-                )
-            ), RouteSchedule(
-                name = "C노선",
-                color = Orange600,
-                bgColor = Orange50,
-                icon = Icons.Default.DirectionsBus,
-                morningTimes = listOf("09:20", "10:00", "10:40", "11:20"),
-                afternoonTimes = listOf(
-                    "13:20", "14:00", "14:40", "15:20", "16:00", "16:40", "17:20"
-                )
-            ), RouteSchedule(
-                name = "순환",
-                color = Gray700,
-                bgColor = Gray100,
-                icon = Icons.Default.Loop,
-                morningTimes = listOf(
-                    "09:00", "09:20", "09:40", "10:00", "10:20", "10:40", "11:00", "11:20", "11:40"
-                ),
-                afternoonTimes = listOf(
-                    "13:00",
-                    "13:20",
-                    "13:40",
-                    "14:00",
-                    "14:20",
-                    "14:40",
-                    "15:00",
-                    "15:20",
-                    "15:40",
-                    "16:00",
-                    "16:20",
-                    "16:40",
-                    "17:00",
-                    "17:20",
-                    "17:40"
-                )
-            )
-        )
+        }
     }
 
     var selectedRouteIndex by remember { mutableStateOf(0) }
 
-    Box(
+    Column(
         modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.6f))
-            .clickable { onDismiss() }, contentAlignment = Alignment.BottomCenter
+            .fillMaxWidth()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        uiRoutes.getOrNull(selectedRouteIndex)?.color ?: PrimaryBlue,
+                        uiRoutes.getOrNull(selectedRouteIndex)?.color?.copy(alpha = 0.85f)
+                            ?: PrimaryBlue.copy(alpha = 0.85f)
+                    )
+                )
+            )
+            .padding(24.dp)
     ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.85f)
-                .pointerInput(Unit) {
-                    detectTapGestures { }
-                }
-                .clickable(enabled = false) { },
-            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-            color = Color.White,
-            shadowElevation = 24.dp
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(
-                modifier = Modifier.fillMaxSize()
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    routes[selectedRouteIndex].color,
-                                    routes[selectedRouteIndex].color.copy(alpha = 0.85f)
-                                )
-                            )
-                        )
-                        .padding(24.dp)
+                Surface(
+                    shape = RoundedCornerShape(12.dp), color = White.copy(alpha = 0.2f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Schedule,
+                        contentDescription = null,
+                        tint = White,
+                        modifier = Modifier
+                            .padding(10.dp)
+                            .size(24.dp)
+                    )
+                }
+                Column {
+                    Text(
+                        text = stringResource(id = R.string.quickride_timetable_title),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = White
+                    )
+                    Text(
+                        text = stringResource(id = R.string.quickride_timetable_subtitle),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = White.copy(alpha = 0.8f)
+                    )
+                }
+            }
+
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier.background(White.copy(alpha = 0.2f), CircleShape)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = stringResource(id = R.string.quickride_timetable_close_cd),
+                    tint = White
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            items(uiRoutes.size) { index ->
+                val route = uiRoutes[index]
+                val isSelected = selectedRouteIndex == index
+
+                Surface(
+                    onClick = { selectedRouteIndex = index },
+                    shape = RoundedCornerShape(20.dp),
+                    color = if (isSelected) White else White.copy(alpha = 0.15f)
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier = Modifier.padding(
+                            horizontal = 16.dp, vertical = 10.dp
+                        ),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Surface(
-                                shape = RoundedCornerShape(12.dp), color = White.copy(alpha = 0.2f)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Schedule,
-                                    contentDescription = null,
-                                    tint = White,
-                                    modifier = Modifier
-                                        .padding(10.dp)
-                                        .size(24.dp)
-                                )
-                            }
-                            Column {
-                                Text(
-                                    text = "셔틀버스 시간표",
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = White
-                                )
-                                Text(
-                                    text = "평일 운행 기준",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = White.copy(alpha = 0.8f)
-                                )
-                            }
-                        }
-
-                        IconButton(
-                            onClick = onDismiss,
-                            modifier = Modifier.background(White.copy(alpha = 0.2f), CircleShape)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "닫기",
-                                tint = White
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        items(routes.size) { index ->
-                            val route = routes[index]
-                            val isSelected = selectedRouteIndex == index
-
-                            Surface(
-                                onClick = { selectedRouteIndex = index },
-                                shape = RoundedCornerShape(20.dp),
-                                color = if (isSelected) White else White.copy(alpha = 0.15f)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(
-                                        horizontal = 16.dp, vertical = 10.dp
-                                    ),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = route.icon,
-                                        contentDescription = null,
-                                        tint = if (isSelected) route.color else White,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Text(
-                                        text = route.name,
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isSelected) route.color else White
-                                    )
-                                }
-                            }
-                        }
+                        Icon(
+                            imageVector = route.icon,
+                            contentDescription = null,
+                            tint = if (isSelected) route.color else White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = route.name,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isSelected) route.color else White
+                        )
                     }
                 }
+            }
+        }
+    }
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState())
-                        .padding(20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)
+    Spacer(modifier = Modifier.height(20.dp))
+
+    val selectedRoute = uiRoutes.getOrNull(selectedRouteIndex)
+    selectedRoute?.let { route ->
+        TimeTableSection(
+            title = stringResource(id = R.string.quickride_morning),
+            subtitle = stringResource(id = R.string.quickride_morning_abbrev),
+            times = route.morningTimes,
+            accentColor = route.color,
+            bgColor = route.bgColor
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        TimeTableSection(
+            title = stringResource(id = R.string.quickride_afternoon),
+            subtitle = stringResource(id = R.string.quickride_afternoon_abbrev),
+            times = route.afternoonTimes,
+            accentColor = route.color,
+            bgColor = route.bgColor
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            color = Gray50,
+            border = androidx.compose.foundation.BorderStroke(1.dp, Gray200)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    val selectedRoute = routes[selectedRouteIndex]
-
-                    TimeTableSection(
-                        title = "오전",
-                        subtitle = "AM",
-                        times = selectedRoute.morningTimes,
-                        accentColor = selectedRoute.color,
-                        bgColor = selectedRoute.bgColor
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        tint = Gray500,
+                        modifier = Modifier.size(20.dp)
                     )
-
-                    TimeTableSection(
-                        title = "오후",
-                        subtitle = "PM",
-                        times = selectedRoute.afternoonTimes,
-                        accentColor = selectedRoute.color,
-                        bgColor = selectedRoute.bgColor
+                    Text(
+                        text = stringResource(id = R.string.quickride_operation_info_title),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Gray700
                     )
-
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        color = Gray50,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Gray200)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Info,
-                                    contentDescription = null,
-                                    tint = Gray500,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Text(
-                                    text = "운행 안내",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Gray700
-                                )
-                            }
-                            Text(
-                                text = "• 주말 및 공휴일은 운행하지 않습니다\n• 점심시간(12:00~13:00)은 운행하지 않습니다\n• 기상 상황에 따라 운행이 변경될 수 있습니다",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Gray600,
-                                lineHeight = 22.sp
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(20.dp))
                 }
+                Text(
+                    text = stringResource(id = R.string.quickride_operation_info_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Gray600,
+                    lineHeight = 22.sp
+                )
             }
         }
     }
@@ -767,7 +761,7 @@ fun TimeTableSection(
                 color = Gray900
             )
             Text(
-                text = "${times.size}회 운행",
+                text = stringResource(id = R.string.quickride_timetable_runs, times.size),
                 style = MaterialTheme.typography.bodySmall,
                 color = Gray500
             )
@@ -838,11 +832,20 @@ private fun BusCardPreview() {
     }
 }
 
-@Preview(showBackground = true, name = "Time Table Modal")
+@Preview(showBackground = true, name = "Time Table Content")
 @Composable
-private fun TimeTableModalPreview() {
+private fun TimeTableContentPreview() {
     BusTheme {
-        TimeTableModal(onDismiss = {})
+        TimeTableContent(
+            routes = listOf(
+                RouteScheduleTemplate(
+                    name = "A노선",
+                    morningTimes = listOf("09:00", "09:30"),
+                    afternoonTimes = listOf("13:00", "13:30")
+                )
+            ),
+            onDismiss = {}
+        )
     }
 }
 

@@ -18,18 +18,19 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.tukorea.bus.R
 import com.tukorea.bus.ui.theme.*
 
 @Composable
@@ -202,8 +203,8 @@ fun CalendarScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(uiState.errorMessage) {
-        uiState.errorMessage?.let { error ->
+    LaunchedEffect(uiState.error) {
+        uiState.error?.let { error ->
             snackbarHostState.showSnackbar(
                 message = error,
                 duration = SnackbarDuration.Short
@@ -258,14 +259,14 @@ fun CalendarScreen(
                     modifier = Modifier.padding(bottom = 20.dp)
                 ) {
                     Text(
-                        text = "예약하기",
+                        text = stringResource(id = R.string.calendar_title),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = Gray900
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "반복 일정으로 편리하게",
+                        text = stringResource(id = R.string.calendar_subtitle),
                         style = MaterialTheme.typography.bodyLarge,
                         color = Gray500
                     )
@@ -286,7 +287,7 @@ fun CalendarScreen(
                         verticalArrangement = Arrangement.spacedBy(26.dp)
                     ) {
                         Text(
-                            text = "요일을 선택해주세요",
+                            text = stringResource(id = R.string.calendar_select_days_title),
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
                             color = Gray900
@@ -318,6 +319,12 @@ fun CalendarScreen(
                                     label = "day_button_scale"
                                 )
 
+                                val dayA11yText = if (isSelected) {
+                                    stringResource(id = R.string.calendar_day_selected_a11y, day)
+                                } else {
+                                    stringResource(id = R.string.calendar_day_select_a11y, day)
+                                }
+
                                 Box(
                                     modifier = Modifier
                                         .size(44.dp)
@@ -329,8 +336,7 @@ fun CalendarScreen(
                                             onClick = { viewModel.toggleDay(day) }
                                         )
                                         .semantics {
-                                            contentDescription =
-                                                if (isSelected) "$day 선택됨" else "$day 선택"
+                                            contentDescription = dayA11yText
                                         },
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -352,7 +358,7 @@ fun CalendarScreen(
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Text(
-                                text = "출발지",
+                                text = stringResource(id = R.string.calendar_from_label),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Gray700
@@ -401,7 +407,7 @@ fun CalendarScreen(
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Text(
-                                text = "도착지",
+                                text = stringResource(id = R.string.calendar_to_label),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Gray700
@@ -447,7 +453,7 @@ fun CalendarScreen(
                         }
 
                         Text(
-                            text = "시간 선택",
+                            text = stringResource(id = R.string.calendar_select_time_title),
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
                             color = Gray900
@@ -472,7 +478,10 @@ fun CalendarScreen(
                                 ) { time ->
                                     val isSelected = selectedTimes.contains(time)
                                     val timeInt = time.split(":")[0].toIntOrNull() ?: 0
-                                    val period = if (timeInt < 12) "오전" else "오후"
+                                    val period = if (timeInt < 12)
+                                        stringResource(id = R.string.quickride_morning)
+                                    else
+                                        stringResource(id = R.string.quickride_afternoon)
 
                                     val interactionSource = remember { MutableInteractionSource() }
                                     val isPressed by interactionSource.collectIsPressedAsState()
@@ -492,13 +501,26 @@ fun CalendarScreen(
                                         label = "time_button_scale"
                                     )
 
+                                    val timeA11yText = if (isSelected) {
+                                        stringResource(
+                                            id = R.string.calendar_time_selected_a11y,
+                                            period,
+                                            time
+                                        )
+                                    } else {
+                                        stringResource(
+                                            id = R.string.calendar_time_select_a11y,
+                                            period,
+                                            time
+                                        )
+                                    }
+
                                     Surface(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .graphicsLayer(scaleX = scale, scaleY = scale)
                                             .semantics {
-                                                contentDescription =
-                                                    if (isSelected) "$period $time 선택됨" else "$period $time 선택"
+                                                contentDescription = timeA11yText
                                             },
                                         shape = RoundedCornerShape(12.dp),
                                         color = backgroundColor,
@@ -562,7 +584,7 @@ fun CalendarScreen(
                                             shape = RoundedCornerShape(16.dp)
                                         ) {
                                             Text(
-                                                text = "취소",
+                                                text = stringResource(id = R.string.common_cancel),
                                                 style = MaterialTheme.typography.titleMedium,
                                                 fontWeight = FontWeight.Bold
                                             )
@@ -580,7 +602,7 @@ fun CalendarScreen(
                                             shape = RoundedCornerShape(16.dp)
                                         ) {
                                             Text(
-                                                text = "수정 완료",
+                                                text = stringResource(id = R.string.calendar_edit_complete_button),
                                                 style = MaterialTheme.typography.titleMedium,
                                                 fontWeight = FontWeight.Bold
                                             )
@@ -600,7 +622,7 @@ fun CalendarScreen(
                                         shape = RoundedCornerShape(16.dp)
                                     ) {
                                         Text(
-                                            text = "예약 추가",
+                                            text = stringResource(id = R.string.calendar_add_button),
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -625,12 +647,12 @@ fun CalendarScreen(
                             .fillMaxWidth()
                             .padding(24.dp)
                     ) {
-                                        Text(
-                                                text = "예정된 예약 (${reservations.size})",
-                                                style = MaterialTheme.typography.titleLarge,
-                                                fontWeight = FontWeight.Bold,
-                                                color = Gray900
-                                            )
+                        Text(
+                            text = stringResource(id = R.string.calendar_reserved_title, reservations.size),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = Gray900
+                        )
                         Spacer(modifier = Modifier.height(16.dp))
 
                         if (reservations.isEmpty()) {
@@ -648,9 +670,9 @@ fun CalendarScreen(
                                     tint = Gray400.copy(alpha = 0.5f)
                                 )
                                 Text(
-                                    text = "예약된 일정이 없습니다",
+                                    text = stringResource(id = R.string.calendar_reserved_empty),
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = Gray400 // text-gray-400
+                                    color = Gray400
                                 )
                             }
                         } else {
@@ -686,14 +708,14 @@ fun CalendarScreen(
                     },
                     title = {
                         Text(
-                            text = "예약 삭제",
+                            text = stringResource(id = R.string.calendar_delete_title),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
                     },
                     text = {
                         Text(
-                            text = "정말 이 예약을 삭제하시겠습니까?\n삭제된 예약은 복구할 수 없습니다.",
+                            text = stringResource(id = R.string.calendar_delete_message),
                             style = MaterialTheme.typography.bodyMedium,
                             color = Gray700
                         )
@@ -705,14 +727,14 @@ fun CalendarScreen(
                                 containerColor = MaterialTheme.colorScheme.error
                             )
                         ) {
-                            Text("삭제")
+                            Text(stringResource(id = R.string.common_delete))
                         }
                     },
                     dismissButton = {
                         OutlinedButton(
                             onClick = { viewModel.hideDeleteDialog() }
                         ) {
-                            Text("취소")
+                            Text(stringResource(id = R.string.common_cancel))
                         }
                     }
                 )
@@ -720,7 +742,3 @@ fun CalendarScreen(
         }
     }
 }
-
-// Preview 함수 제거 - 실제 백엔드 연동 시 사용하지 않음
-
-

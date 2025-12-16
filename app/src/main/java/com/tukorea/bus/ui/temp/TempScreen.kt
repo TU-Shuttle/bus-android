@@ -19,9 +19,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.tukorea.bus.R
 import com.tukorea.bus.domain.model.Temp
 
 @Composable
@@ -39,7 +41,7 @@ fun TempScreen(
         Button(
             onClick = { viewModel.loadTemps() }
         ) {
-            Text(text = "Load Temp")
+            Text(text = stringResource(id = R.string.temp_load_button))
         }
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -53,14 +55,17 @@ fun TempScreen(
             }
             state.error != null -> {
                 Text(
-                    text = "에러: ${state.error}",
+                    text = stringResource(
+                        id = R.string.temp_error_prefix,
+                        state.error ?: ""
+                    ),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.error
                 )
             }
             state.temps.isEmpty() -> {
                 Text(
-                    text = "결과가 없습니다",
+                    text = stringResource(id = R.string.temp_empty),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

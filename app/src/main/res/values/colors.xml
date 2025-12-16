@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- 프로젝트가 xml에서 compose로 마이그레이션 하면서 이제 사용 안함   -->
     <!-- Primary Colors (메인 색상) -->
     <color name="Blue_600">#2563eb</color> <!-- 메인 브랜드, 버튼, A노선 -->
     <color name="Blue_500">#3b82f6</color> <!-- 그라데이션, 내 위치 표시-->

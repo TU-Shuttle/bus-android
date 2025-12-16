@@ -9,14 +9,5 @@ sealed class MapError {
     object PermissionDenied : MapError()
     object Timeout : MapError()
     data class Unknown(val errorMessage: String?) : MapError()
-
-    fun getMessage(): String {
-        return when (this) {
-            is LocationNotFound -> "위치를 가져올 수 없습니다."
-            is PermissionDenied -> "위치 권한이 필요합니다."
-            is Timeout -> "위치를 가져오는 데 시간이 너무 오래 걸렸습니다."
-            is Unknown -> errorMessage ?: "알 수 없는 오류가 발생했습니다."
-        }
-    }
 }
 

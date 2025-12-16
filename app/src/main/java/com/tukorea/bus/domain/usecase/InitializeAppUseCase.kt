@@ -3,7 +3,6 @@ package com.tukorea.bus.domain.usecase
 import com.tukorea.bus.domain.error.AppError
 import com.tukorea.bus.domain.util.AppResult
 import com.tukorea.bus.domain.util.Result
-import kotlinx.coroutines.delay
 import javax.inject.Inject
 
 class InitializeAppUseCase @Inject constructor() {
@@ -15,8 +14,7 @@ class InitializeAppUseCase @Inject constructor() {
      */
     suspend operator fun invoke(): AppResult<Unit> {
         return try {
-            delay(1000L)
-            // TODO: 초기화 로직 추가
+            // TODO: 실제 초기화 로직 추가 (예: 토큰 로드, 원격 설정, FCM 등록 등)
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(AppError.CustomError(e.message))

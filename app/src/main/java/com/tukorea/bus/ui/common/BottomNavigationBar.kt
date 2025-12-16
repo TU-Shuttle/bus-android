@@ -23,7 +23,6 @@ fun BottomNavigationBar(
     val navItems = listOf(
         BottomNavItem(Screen.Home.route, Icons.Default.Home, "홈"),
         BottomNavItem(Screen.Calendar.route, Icons.Default.DateRange, "예약"),
-        BottomNavItem(Screen.Stations.route, Icons.Default.Place, "정류장"),
         BottomNavItem(Screen.QuickRide.route, Icons.Default.LocalFireDepartment, "바로탑승"),
         BottomNavItem(Screen.Settings.route, Icons.Default.Settings, "설정")
     )
