@@ -46,13 +46,25 @@ import com.naver.maps.map.util.FusedLocationSource
 import com.tukorea.bus.domain.model.MapLocation
 import com.tukorea.bus.domain.util.LocationUtils
 
+// 카메라 설정 상수
+private const val MAP_MARKER_ZOOM_LEVEL = 15.0
+private const val MAP_MARKER_LATITUDE_OFFSET = -0.0015 // 음수: 마커가 화면 위쪽에 표시, 양수: 마커가 화면 아래쪽에 표시
+private const val MAP_CAMERA_ANIMATION_DURATION_MS = 500
+
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun MapScreen(
-    viewModel: MapViewModel = hiltViewModel()
+    viewModel: MapViewModel = hiltViewModel(),
+    onNavigateTo: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+    val screenHeight = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp
+    val density = androidx.compose.ui.platform.LocalDensity.current
+
+    // 모달 높이 상태
+    var modalHeight by remember { mutableStateOf(com.tukorea.bus.ui.home.ModalHeight.LOW) }
 
     // 위치 권한 상태
     val locationPermissionsState = rememberMultiplePermissionsState(
@@ -94,6 +106,17 @@ fun MapScreen(
                 if (locationPermissionsState.allPermissionsGranted) {
                     viewModel.loadCurrentLocation()
                 }
+            },
+            onBusStopMarkerClick = { busStop ->
+                viewModel.onBusStopSelected(busStop)
+                modalHeight = com.tukorea.bus.ui.home.ModalHeight.MID
+            },
+            onMapClick = {
+                // 지도 클릭 시 모달 닫기
+                if (state.isBusStopModalVisible) {
+                    viewModel.closeBusStopModal()
+                    modalHeight = com.tukorea.bus.ui.home.ModalHeight.LOW
+                }
             }
         )
 
@@ -120,6 +143,46 @@ fun MapScreen(
                 contentDescription = stringResource(id = R.string.map_my_location_cd)
             )
         }
+
+        // 정류장 정보 모달
+        if (state.isBusStopModalVisible && state.selectedBusStop != null) {
+            com.tukorea.bus.ui.common.BottomModal(
+                modalHeight = modalHeight,
+                onModalHeightChange = { newHeight ->
+                    modalHeight = newHeight
+                },
+                screenHeight = screenHeight,
+                density = density,
+                isVisible = state.isBusStopModalVisible
+            ) {
+                BusStopInfoModal(
+                    busStop = state.selectedBusStop!!,
+                    onDismiss = {
+                        viewModel.closeBusStopModal()
+                        modalHeight = com.tukorea.bus.ui.home.ModalHeight.LOW
+                    },
+                    onViewTimeTable = {
+                        onNavigateTo(com.tukorea.bus.ui.navigation.Screen.QuickRide.route)
+                    },
+                    onRideStart = { bus ->
+                        if (bus.status == BusStatus.DEPARTED) {
+                            // 버스가 이미 출발한 경우 바로 탑승 화면으로 이동
+                            viewModel.closeBusStopModal()
+                            onNavigateTo(com.tukorea.bus.ui.navigation.Screen.Ride.route)
+                        } else {
+                            // 대기 상태이면 알람 예약
+                            android.widget.Toast.makeText(
+                                context,
+                                context.getString(R.string.bus_ride_alarm_reserved),
+                                android.widget.Toast.LENGTH_SHORT
+                            ).show()
+                            // TODO: 도착 예정 10분 전 알람 설정
+                            // TODO: 버스 출발 시 자동으로 RideScreen으로 이동
+                        }
+                    }
+                )
+            }
+        }
     }
 }
 
@@ -130,7 +193,9 @@ fun NaverMapView(
     isLocationPermissionGranted: Boolean,
     onMapReady: () -> Unit = {},
     bottomPadding: Int = 0,
-    onMapInitialized: ((NaverMap) -> Unit)? = null
+    onMapInitialized: ((NaverMap) -> Unit)? = null,
+    onBusStopMarkerClick: (com.tukorea.bus.domain.model.BusStop) -> Unit = {},
+    onMapClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -147,8 +212,14 @@ fun NaverMapView(
     // NaverMap 인스턴스
     var naverMap by remember { mutableStateOf<NaverMap?>(null) }
 
+    // 정류장 데이터 가져오기
+    val busStops = remember {
+        val dataSource = com.tukorea.bus.data.datasource.BusStopDataSource()
+        dataSource.getAllBusStops()
+    }
+
     // 마지막 업데이트 위치 (중복 업데이트 방지)
-    var lastUpdatedLocation by rememberSaveable { mutableStateOf<MapLocation?>(null) }
+    var lastUpdatedLocation by remember { mutableStateOf<MapLocation?>(null) }
 
     // 맵이 준비되었는지 여부
     var isMapReady by remember { mutableStateOf(false) }
@@ -252,6 +323,35 @@ fun NaverMapView(
                         map.locationTrackingMode = LocationTrackingMode.Follow
                     }
 
+                    // 지도 클릭 리스너 설정
+                    map.setOnMapClickListener { _, _ ->
+                        onMapClick()
+                    }
+
+                    // 정류장 마커 추가
+                    busStops.forEach { busStop ->
+                        val marker = com.naver.maps.map.overlay.Marker().apply {
+                            position = LatLng(busStop.latitude, busStop.longitude)
+                            captionText = busStop.name
+                            icon = com.naver.maps.map.overlay.OverlayImage.fromResource(com.tukorea.bus.R.drawable.ic_location_tracking)
+                            tag = busStop
+                        }
+
+                        marker.setOnClickListener {
+                            // 마커 클릭 시 카메라 이동 (모달 위치를 고려하여 위로 오프셋)
+                            val cameraUpdate = CameraUpdate.scrollAndZoomTo(
+                                LatLng(busStop.latitude + MAP_MARKER_LATITUDE_OFFSET, busStop.longitude),
+                                MAP_MARKER_ZOOM_LEVEL
+                            ).animate(CameraAnimation.Easing, MAP_CAMERA_ANIMATION_DURATION_MS.toLong())
+                            map.moveCamera(cameraUpdate)
+
+                            onBusStopMarkerClick(busStop)
+                            true
+                        }
+
+                        marker.map = map
+                    }
+
                     isMapReady = true
                 }
             }
@@ -260,8 +360,8 @@ fun NaverMapView(
             // 시스템 바 영역만큼 맵 UI 컨트롤 위치 조정
             naverMap?.let { map ->
                 val density = view.context.resources.displayMetrics.density
-                val bottomPadding = (80 * density).toInt() // 네비게이션 바 + 여유 공간
-                map.setContentPadding(0, 0, 0, bottomPadding)
+                val bottomPaddingPx = (80 * density).toInt() // 네비게이션 바 + 여유 공간
+                map.setContentPadding(0, 0, 0, bottomPaddingPx)
             }
         },
         modifier = modifier

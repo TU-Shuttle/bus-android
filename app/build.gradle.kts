@@ -27,9 +27,7 @@ fun getEnv(key: String): String {
 
 android {
     namespace = "com.tukorea.bus"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.tukorea.bus"

@@ -31,6 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tukorea.bus.R
+import com.tukorea.bus.ui.common.ConfirmDeleteDialog
 import com.tukorea.bus.ui.theme.*
 
 @Composable
@@ -694,51 +695,16 @@ fun CalendarScreen(
                 }
             }
 
-            // 삭제 확인 다이얼로그
-            uiState.deletingReservationId?.let { reservationId ->
-                AlertDialog(
-                    onDismissRequest = { viewModel.hideDeleteDialog() },
-                    containerColor = Color.White,
-                    icon = {
-                        Icon(
-                            imageVector = Icons.Default.DateRange,
-                            contentDescription = null,
-                            tint = PrimaryBlue
-                        )
-                    },
-                    title = {
-                        Text(
-                            text = stringResource(id = R.string.calendar_delete_title),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                    },
-                    text = {
-                        Text(
-                            text = stringResource(id = R.string.calendar_delete_message),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Gray700
-                        )
-                    },
-                    confirmButton = {
-                        Button(
-                            onClick = { viewModel.deleteReservation(reservationId) },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.error
-                            )
-                        ) {
-                            Text(stringResource(id = R.string.common_delete))
-                        }
-                    },
-                    dismissButton = {
-                        OutlinedButton(
-                            onClick = { viewModel.hideDeleteDialog() }
-                        ) {
-                            Text(stringResource(id = R.string.common_cancel))
-                        }
+                // 삭제 확인 다이얼로그
+            ConfirmDeleteDialog(
+                showDialog = uiState.deletingReservationId != null,
+                onDismiss = { viewModel.hideDeleteDialog() },
+                onConfirm = {
+                    uiState.deletingReservationId?.let { reservationId ->
+                        viewModel.deleteReservation(reservationId)
                     }
-                )
-            }
+                }
+            )
         }
     }
 }

@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tukorea.bus.R
@@ -39,6 +40,7 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.tukorea.bus.domain.model.Reservation
 import com.tukorea.bus.ui.common.BottomModal
+import com.tukorea.bus.ui.map.BusStatus
 import com.tukorea.bus.ui.map.MapViewModel
 import com.tukorea.bus.ui.map.NaverMapView
 import com.tukorea.bus.ui.navigation.Screen
@@ -51,6 +53,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     mapViewModel: MapViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     val mapState by mapViewModel.state.collectAsStateWithLifecycle()
 
@@ -107,15 +110,68 @@ fun HomeScreen(
                     },
                     onMapInitialized = { _ ->
                     },
+                    onBusStopMarkerClick = { busStop ->
+                        mapViewModel.onBusStopSelected(busStop)
+                        viewModel.updateModalHeight(ModalHeight.HIGH)
+                    },
+                    onMapClick = {
+                        // 지도 클릭 시 정류장 모달이 열려있으면 닫고, 홈 모달을 MID로 변경
+                        if (mapState.isBusStopModalVisible) {
+                            mapViewModel.closeBusStopModal()
+                        }
+                        // 홈 모달이 LOW 상태가 아니면 MID로 변경
+                        if (uiState.modalHeight != ModalHeight.MID) {
+                            viewModel.updateModalHeight(ModalHeight.MID)
+                        }
+                    }
                 )
             }
 
+            // 정류장 정보 모달 (홈 모달보다 위에 표시)
+            if (mapState.isBusStopModalVisible && mapState.selectedBusStop != null) {
+                BottomModal(
+                    modalHeight = ModalHeight.MID,
+                    onModalHeightChange = {},
+                    screenHeight = screenHeight,
+                    density = density,
+                    isVisible = mapState.isBusStopModalVisible
+                ) {
+                    com.tukorea.bus.ui.map.BusStopInfoModal(
+                        busStop = mapState.selectedBusStop!!,
+                        onDismiss = {
+                            mapViewModel.closeBusStopModal()
+                            viewModel.updateModalHeight(ModalHeight.MID)
+                        },
+                        onViewTimeTable = {
+                            onNavigateTo(Screen.QuickRide.route)
+                        },
+                        onRideStart = { bus ->
+                            if (bus.status == BusStatus.DEPARTED) {
+                                // 버스가 이미 출발한 경우 바로 탑승 화면으로 이동
+                                mapViewModel.closeBusStopModal()
+                                onNavigateTo(Screen.Ride.route)
+                            } else {
+                                // 대기 상태이면 알람 예약
+                                android.widget.Toast.makeText(
+                                    context,
+                                    context.getString(R.string.bus_ride_alarm_reserved),
+                                    android.widget.Toast.LENGTH_SHORT
+                                ).show()
+                                // TODO: 도착 예정 10분 전 알람 설정
+                                // TODO: 버스 출발 시 자동으로 RideScreen으로 이동
+                            }
+                        }
+                    )
+                }
+            }
+
+            // 홈 모달 (정류장 모달이 없을 때만 표시)
             BottomModal(
                 modalHeight = uiState.modalHeight,
                 onModalHeightChange = viewModel::updateModalHeight,
                 screenHeight = screenHeight,
                 density = density,
-                isVisible = uiState.isModalVisible
+                isVisible = uiState.isModalVisible && !mapState.isBusStopModalVisible
             ) {
                 // 읽지 않은 중요 알림이 있을 때만 공지사항 배너 표시
                 if (uiState.hasUnreadImportantNotice) {

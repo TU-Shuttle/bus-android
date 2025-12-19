@@ -90,5 +90,27 @@ class MapViewModel @Inject constructor(
         _state.value = _state.value.copy(isLocationPermissionGranted = true)
         loadCurrentLocation()
     }
+
+    /**
+     * 정류장 마커를 클릭했을 때 호출됩니다.
+     * 선택된 정류장 정보를 표시합니다.
+     */
+    fun onBusStopSelected(busStop: com.tukorea.bus.domain.model.BusStop) {
+        Log.d(TAG, "정류장 선택: ${busStop.name}")
+        _state.value = _state.value.copy(
+            selectedBusStop = busStop,
+            isBusStopModalVisible = true
+        )
+    }
+
+    /**
+     * 정류장 정보 모달을 닫습니다.
+     */
+    fun closeBusStopModal() {
+        Log.d(TAG, "정류장 모달 닫기")
+        _state.value = _state.value.copy(
+            isBusStopModalVisible = false
+        )
+    }
 }
 

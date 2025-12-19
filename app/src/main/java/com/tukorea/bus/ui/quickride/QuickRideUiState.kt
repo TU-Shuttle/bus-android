@@ -11,6 +11,8 @@ data class QuickRideUiState(
     val timetableRoutes: List<RouteScheduleTemplate> = emptyList(),
     val showTimeTable: Boolean = false,
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val isLoadingLocation: Boolean = false,
+    val nearestStopDistance: String? = null
 )
 

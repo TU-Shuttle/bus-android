@@ -7,6 +7,12 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
+    <!-- 백그라운드 위치 추적 권한 -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
         android:networkSecurityConfig="@xml/network_security_config"
         android:name=".BusApplication"
@@ -39,6 +45,13 @@
         <activity
             android:name=".ui.main.MainActivity"
             android:exported="false" />
+
+        <!-- Location Tracking Service -->
+        <service
+            android:name=".service.LocationTrackingService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="location" />
     </application>
 
 </manifest>

@@ -1,5 +1,6 @@
 package com.tukorea.bus.ui.map
 
+import com.tukorea.bus.domain.model.BusStop
 import com.tukorea.bus.domain.model.MapLocation
 
 /**
@@ -8,11 +9,15 @@ import com.tukorea.bus.domain.model.MapLocation
  * @param currentLocation 현재 위치 정보
  * @param isLocationPermissionGranted 위치 권한 허용 여부
  * @param error 에러 메시지 (에러 발생 시)
+ * @param selectedBusStop 선택된 정류장 (마커 클릭 시)
+ * @param isBusStopModalVisible 정류장 정보 모달 표시 여부
  */
 data class MapUiState(
     val isLoading: Boolean = false,
     val currentLocation: MapLocation? = null,
     val isLocationPermissionGranted: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val selectedBusStop: BusStop? = null,
+    val isBusStopModalVisible: Boolean = false
 )
 
