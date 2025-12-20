@@ -51,9 +51,6 @@ class LocationDataSource @Inject constructor(
      * 현재 위치를 가져옵니다.
      * Google Play Services의 FusedLocationProviderClient를 사용하여
      * 높은 정확도로 위치를 가져옵니다.
-     * 
-     * 먼저 getLastLocation()으로 최근 위치를 시도하고,
-     * 실패하면 getCurrentLocation()으로 새 위치를 요청합니다.
      *
      * @return 성공 시 위치 정보, 실패 시 에러를 포함한 Result
      */
@@ -64,58 +61,36 @@ class LocationDataSource @Inject constructor(
         }
 
         return try {
-            // 1. 먼저 마지막으로 알려진 위치를 시도 (빠름)
-            @SuppressLint("MissingPermission")
-            val lastLocation = fusedLocationClient.lastLocation.await()
-            
-            lastLocation?.let {
-                Log.d(
-                    TAG,
-                    "마지막 위치 가져오기 성공: lat=${it.latitude}, lng=${it.longitude}, accuracy=${it.accuracy}"
-                )
-                return Result.Success(
-                    MapLocation(
-                        latitude = it.latitude, 
-                        longitude = it.longitude, 
-                        accuracy = it.accuracy
-                    )
-                )
-            }
-            
-            // 2. 마지막 위치가 없으면 새 위치 요청
-            Log.d(TAG, "마지막 위치가 없음. 새 위치 요청 중...")
+            // 취소 토큰 생성 (필요시 위치 요청 취소 가능)
             val cancellationTokenSource = CancellationTokenSource()
 
-            @SuppressLint("MissingPermission") 
-            val location: Location? = withTimeout(15000) {
+            @SuppressLint("MissingPermission") val location: Location? = withTimeout(10000) {
                 fusedLocationClient.getCurrentLocation(
                     Priority.PRIORITY_HIGH_ACCURACY,
                     cancellationTokenSource.token
-                ).await()
+                ).await() // Task를 코루틴 suspend 함수로 변환
             }
 
             // Location 객체를 MapLocation 모델로 변환
             location?.let {
                 Log.d(
                     TAG,
-                    "현재 위치 가져오기 성공: lat=${it.latitude}, lng=${it.longitude}, accuracy=${it.accuracy}"
+                    "위치 가져오기 성공!!!!!!!: lat=${it.latitude}, lng=${it.longitude}, accuracy=${it.accuracy}"
                 )
                 Result.Success(
                     MapLocation(
-                        latitude = it.latitude, 
-                        longitude = it.longitude, 
-                        accuracy = it.accuracy
+                        latitude = it.latitude, longitude = it.longitude, accuracy = it.accuracy
                     )
                 )
             } ?: run {
-                Log.w(TAG, "위치 정보가 null입니다. 위치 서비스가 꺼져있을 수 있습니다.")
+                Log.w(TAG, "위치 정보가 null입니다.")
                 Result.Error(MapError.LocationNotFound)
             }
         } catch (e: SecurityException) {
             Log.e(TAG, "위치 권한이 거부", e)
             Result.Error(MapError.PermissionDenied)
         } catch (e: TimeoutCancellationException) {
-            Log.e(TAG, "위치 가져오기 타임아웃 (15초)", e)
+            Log.e(TAG, "위치 가져오기 타임아웃", e)
             Result.Error(MapError.Timeout)
         } catch (e: Exception) {
             Log.e(TAG, "위치 가져오기 실패", e)
