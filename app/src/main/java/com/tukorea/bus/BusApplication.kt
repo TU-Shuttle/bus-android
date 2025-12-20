@@ -12,7 +12,9 @@ class BusApplication : Application() {
         super.onCreate()
         instance = this
 
-        startLocationTrackingService()
+        // TODO: 위치 권한이 있을 때만 서비스 시작하도록 수정 필요
+        // 현재는 앱 시작 시 크래시를 방지하기 위해 주석 처리
+        // startLocationTrackingService()
 
         Log.d(TAG, "BusApplication 초기화 완료")
     }

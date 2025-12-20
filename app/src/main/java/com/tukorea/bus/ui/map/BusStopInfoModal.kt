@@ -44,6 +44,45 @@ enum class BusStatus {
 }
 
 /**
+ * 정류장별 버스 정보를 반환합니다 (임시 데이터)
+ */
+private fun getBusesForStop(busStopId: String): List<BusStopBusInfo> {
+    return when (busStopId) {
+        "jeongwang_station" -> listOf(
+            BusStopBusInfo("A노선", BusStatus.WAITING, "10:00", "정왕역"),
+            BusStopBusInfo("B노선", BusStatus.DEPARTED, "09:45", "정왕역"),
+            BusStopBusInfo("순환", BusStatus.WAITING, "10:15", "정왕역")
+        )
+        "campus2_direction_after_10" -> listOf(
+            BusStopBusInfo("A노선", BusStatus.WAITING, "14:00", "2캠퍼스"),
+            BusStopBusInfo("B노선", BusStatus.WAITING, "14:30", "2캠퍼스")
+        )
+        "campus2_main" -> listOf(
+            BusStopBusInfo("A노선", BusStatus.DEPARTED, "08:00", "1캠퍼스"),
+            BusStopBusInfo("B노선", BusStatus.WAITING, "09:00", "1캠퍼스"),
+            BusStopBusInfo("순환", BusStatus.WAITING, "09:30", "정왕역")
+        )
+        "campus1_to_campus2" -> listOf(
+            BusStopBusInfo("A노선", BusStatus.WAITING, "08:30", "2캠퍼스"),
+            BusStopBusInfo("B노선", BusStatus.DEPARTED, "08:00", "2캠퍼스")
+        )
+        "jeongwang_to_main_before_5pm" -> listOf(
+            BusStopBusInfo("C노선", BusStatus.WAITING, "14:00", "본교"),
+            BusStopBusInfo("D노선", BusStatus.WAITING, "14:45", "본교")
+        )
+        "jeongwang_to_main_after_5pm" -> listOf(
+            BusStopBusInfo("C노선", BusStatus.WAITING, "18:00", "본교"),
+            BusStopBusInfo("E노선", BusStatus.WAITING, "18:30", "본교")
+        )
+        "jeongwang_to_main_to_campus2" -> listOf(
+            BusStopBusInfo("F노선", BusStatus.WAITING, "12:00", "본교"),
+            BusStopBusInfo("G노선", BusStatus.WAITING, "12:45", "2캠퍼스")
+        )
+        else -> emptyList()
+    }
+}
+
+/**
  * 정류장 정보를 보여주는 모달 컴포넌트
  */
 @Composable
@@ -57,10 +96,9 @@ fun BusStopInfoModal(
     var showConfirmDialog by remember { mutableStateOf(false) }
     var selectedBus by remember { mutableStateOf<BusStopBusInfo?>(null) }
 
-    // 버스 데이터 소스에서 정류장별 버스 정보 가져오기
+    // 정류장별 버스 정보 가져오기 (임시 데이터)
     val buses = remember(busStop.id) {
-        val dataSource = com.tukorea.bus.data.datasource.BusStopDataSource()
-        dataSource.getBusesForStop(busStop.id)
+        getBusesForStop(busStop.id)
     }
 
     Column(

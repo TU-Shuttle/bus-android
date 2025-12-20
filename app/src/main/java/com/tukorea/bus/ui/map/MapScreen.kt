@@ -20,7 +20,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,12 +35,14 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import android.graphics.Color
 import com.naver.maps.geometry.LatLng
 import com.naver.maps.map.CameraAnimation
 import com.naver.maps.map.CameraUpdate
 import com.naver.maps.map.LocationTrackingMode
 import com.naver.maps.map.MapView
 import com.naver.maps.map.NaverMap
+import com.naver.maps.map.overlay.PathOverlay
 import com.naver.maps.map.util.FusedLocationSource
 import com.tukorea.bus.domain.model.MapLocation
 import com.tukorea.bus.domain.util.LocationUtils
@@ -74,17 +75,27 @@ fun MapScreen(
         )
     )
 
-    // 권한 요청 결과 처리
-    LaunchedEffect(locationPermissionsState.allPermissionsGranted) {
+    // 권한 요청 플래그 (중복 요청 방지)
+    var hasRequestedPermission by remember { mutableStateOf(false) }
+    
+    // 화면 진입 시 한 번만 권한 확인 및 요청
+    LaunchedEffect(Unit) {
         if (locationPermissionsState.allPermissionsGranted) {
+            // 이미 권한이 있으면 바로 위치 로드
             viewModel.onLocationPermissionGranted()
+            hasRequestedPermission = true
+        } else if (!hasRequestedPermission) {
+            // 권한이 없고 아직 요청하지 않았을 때만 요청 (중복 방지)
+            hasRequestedPermission = true
+            locationPermissionsState.launchMultiplePermissionRequest()
         }
     }
-
-    // 권한 요청 (처음 진입 시)
-    LaunchedEffect(Unit) {
-        if (!locationPermissionsState.allPermissionsGranted) {
-            locationPermissionsState.launchMultiplePermissionRequest()
+    
+    // 권한 상태 변경 시 처리 (권한 요청 후 허용된 경우)
+    LaunchedEffect(locationPermissionsState.allPermissionsGranted) {
+        if (locationPermissionsState.allPermissionsGranted && hasRequestedPermission) {
+            // 권한이 허용되었을 때 처리
+            viewModel.onLocationPermissionGranted()
         }
     }
 
@@ -101,10 +112,18 @@ fun MapScreen(
             modifier = Modifier.fillMaxSize(),
             currentLocation = state.currentLocation,
             isLocationPermissionGranted = locationPermissionsState.allPermissionsGranted,
+            busRoutes = state.busRoutes,
+            busStops = state.busStops,
             onMapReady = {
                 // 맵 준비되고 권한 있으면 현재 위치 로드
                 if (locationPermissionsState.allPermissionsGranted) {
                     viewModel.loadCurrentLocation()
+                }
+                if (state.busRoutes.isEmpty()) {
+                    viewModel.loadBusRoutes()
+                }
+                if (state.busStops.isEmpty()) {
+                    viewModel.loadBusStops()
                 }
             },
             onBusStopMarkerClick = { busStop ->
@@ -191,6 +210,8 @@ fun NaverMapView(
     modifier: Modifier = Modifier,
     currentLocation: MapLocation?,
     isLocationPermissionGranted: Boolean,
+    busRoutes: List<BusRoute> = emptyList(),
+    busStops: List<com.tukorea.bus.domain.model.BusStop> = emptyList(),
     onMapReady: () -> Unit = {},
     bottomPadding: Int = 0,
     onMapInitialized: ((NaverMap) -> Unit)? = null,
@@ -212,17 +233,48 @@ fun NaverMapView(
     // NaverMap 인스턴스
     var naverMap by remember { mutableStateOf<NaverMap?>(null) }
 
-    // 정류장 데이터 가져오기
-    val busStops = remember {
-        val dataSource = com.tukorea.bus.data.datasource.BusStopDataSource()
-        dataSource.getAllBusStops()
-    }
-
     // 마지막 업데이트 위치 (중복 업데이트 방지)
     var lastUpdatedLocation by remember { mutableStateOf<MapLocation?>(null) }
 
     // 맵이 준비되었는지 여부
     var isMapReady by remember { mutableStateOf(false) }
+    
+    // 버스 경로 오버레이 리스트
+    val pathOverlays = remember { mutableListOf<PathOverlay>() }
+
+    // 버스 경로 표시
+    LaunchedEffect(busRoutes, naverMap, isMapReady) {
+        naverMap?.let { map ->
+            if (isMapReady) {
+                // 기존 경로 오버레이 제거
+                pathOverlays.forEach { it.map = null }
+                pathOverlays.clear()
+
+                // 새로운 경로 오버레이 추가
+                busRoutes.forEachIndexed { index, route ->
+                    if (route.coordinates.isNotEmpty()) {
+                        val pathOverlay = PathOverlay().apply {
+                            coords = route.coordinates.map { coord -> 
+                                LatLng(coord.latitude, coord.longitude) 
+                            }
+                            // 노선별로 다른 색상 지정
+                            color = when (index % 3) {
+                                0 -> Color.parseColor("#4285F4") // 파란색
+                                1 -> Color.parseColor("#34A853") // 초록색
+                                else -> Color.parseColor("#FBBC05") // 주황색
+                            }
+                            outlineColor = Color.parseColor("#FFFFFF")
+                            width = 12
+                            outlineWidth = 2
+                        }
+                        // map 할당은 apply 블록 외부에서
+                        pathOverlay.map = map
+                        pathOverlays.add(pathOverlay)
+                    }
+                }
+            }
+        }
+    }
 
     // 권한 상태 변경 시 LocationTrackingMode 업데이트
     LaunchedEffect(isLocationPermissionGranted, naverMap) {
@@ -273,25 +325,50 @@ fun NaverMapView(
         }
     }
 
-    // 라이프사이클 관리
+    // 라이프사이클 관리 및 리소스 정리
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_CREATE -> mapView.onCreate(Bundle())
-                Lifecycle.Event.ON_START -> mapView.onStart()
-                Lifecycle.Event.ON_RESUME -> mapView.onResume()
-                Lifecycle.Event.ON_PAUSE -> mapView.onPause()
-                Lifecycle.Event.ON_STOP -> mapView.onStop()
-                Lifecycle.Event.ON_DESTROY -> mapView.onDestroy()
-                else -> {}
+            try {
+                when (event) {
+                    Lifecycle.Event.ON_CREATE -> {
+                        // AndroidView factory에서 이미 onCreate를 호출하므로 여기서는 호출하지 않음
+                    }
+                    Lifecycle.Event.ON_START -> mapView.onStart()
+                    Lifecycle.Event.ON_RESUME -> mapView.onResume()
+                    Lifecycle.Event.ON_PAUSE -> mapView.onPause()
+                    Lifecycle.Event.ON_STOP -> mapView.onStop()
+                    Lifecycle.Event.ON_DESTROY -> {
+                        // onDispose에서 처리
+                    }
+                    else -> {}
+                }
+            } catch (e: Exception) {
+                // lifecycle 관리 중 예외 발생 시 무시 (이미 destroyed 상태일 수 있음)
             }
         }
 
         lifecycleOwner.lifecycle.addObserver(observer)
 
         onDispose {
+            // 버스 경로 오버레이 정리
+            pathOverlays.forEach { overlay ->
+                try {
+                    overlay.map = null
+                } catch (e: Exception) {
+                    // 무시
+                }
+            }
+            pathOverlays.clear()
+            
             lifecycleOwner.lifecycle.removeObserver(observer)
-            mapView.onDestroy()
+            try {
+                // lifecycle이 DESTROYED가 아닐 때만 onDestroy 호출
+                if (lifecycleOwner.lifecycle.currentState != Lifecycle.State.DESTROYED) {
+                    mapView.onDestroy()
+                }
+            } catch (e: Exception) {
+                // 이미 destroyed 상태일 수 있음
+            }
         }
     }
 
@@ -339,11 +416,19 @@ fun NaverMapView(
 
                         marker.setOnClickListener {
                             // 마커 클릭 시 카메라 이동 (모달 위치를 고려하여 위로 오프셋)
-                            val cameraUpdate = CameraUpdate.scrollAndZoomTo(
-                                LatLng(busStop.latitude + MAP_MARKER_LATITUDE_OFFSET, busStop.longitude),
-                                MAP_MARKER_ZOOM_LEVEL
-                            ).animate(CameraAnimation.Easing, MAP_CAMERA_ANIMATION_DURATION_MS.toLong())
-                            map.moveCamera(cameraUpdate)
+                            val targetLatLng = LatLng(
+                                busStop.latitude + MAP_MARKER_LATITUDE_OFFSET, 
+                                busStop.longitude
+                            )
+                            // 위치 이동
+                            val scrollUpdate = CameraUpdate.scrollTo(targetLatLng)
+                                .animate(CameraAnimation.Easing, MAP_CAMERA_ANIMATION_DURATION_MS.toLong())
+                            map.moveCamera(scrollUpdate)
+                            
+                            // 줌 레벨 설정
+                            val zoomUpdate = CameraUpdate.zoomTo(MAP_MARKER_ZOOM_LEVEL)
+                                .animate(CameraAnimation.Easing, 300)
+                            map.moveCamera(zoomUpdate)
 
                             onBusStopMarkerClick(busStop)
                             true
