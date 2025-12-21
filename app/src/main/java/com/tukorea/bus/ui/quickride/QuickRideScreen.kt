@@ -103,12 +103,31 @@ fun QuickRideScreen(
                     Column(
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Text(
-                            text = stringResource(id = R.string.quickride_current_location_label),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Gray700
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = stringResource(id = R.string.quickride_current_location_label),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Gray700
+                            )
+                            if (!uiState.isLoadingLocation) {
+                                IconButton(
+                                    onClick = { viewModel.refreshNearestBusStop() },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Refresh,
+                                        contentDescription = "위치 새로고침",
+                                        tint = PrimaryBlue,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                        }
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(14.dp),
@@ -128,19 +147,42 @@ fun QuickRideScreen(
                                         .background(PrimaryBlue, RoundedCornerShape(10.dp)),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Navigation,
-                                        contentDescription = null,
-                                        tint = White,
-                                        modifier = Modifier.size(20.dp)
-                                    )
+                                    if (uiState.isLoadingLocation) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(20.dp),
+                                            color = White,
+                                            strokeWidth = 2.dp
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.Default.Navigation,
+                                            contentDescription = null,
+                                            tint = White,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
                                 }
-                                Text(
-                                    text = uiState.currentLocation,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = Gray900
-                                )
+                                Column(
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text(
+                                        text = if (uiState.isLoadingLocation) {
+                                            "위치 찾는 중..."
+                                        } else {
+                                            uiState.currentLocation.ifEmpty { "위치를 찾을 수 없습니다" }
+                                        },
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Gray900
+                                    )
+                                    uiState.nearestStopDistance?.let { distance ->
+                                        Text(
+                                            text = "약 $distance 거리",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = Gray600
+                                        )
+                                    }
+                                }
                             }
                         }
                     }

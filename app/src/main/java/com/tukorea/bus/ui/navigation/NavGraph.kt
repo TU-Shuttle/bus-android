@@ -95,7 +95,15 @@ fun BusNavGraph(
             )
         }
         composable(Screen.Map.route) {
-            MapScreen()
+            MapScreen(
+                onNavigateTo = { route ->
+                    navController.navigate(route) {
+                        popUpTo(Screen.Map.route) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            )
         }
         composable(Screen.Temp.route) {
             TempScreen()

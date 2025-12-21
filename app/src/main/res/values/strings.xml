@@ -30,6 +30,21 @@
     <!-- Map 화면 -->
     <string name="map_my_location_cd">현재 위치</string>
 
+    <!-- 버스 정류장 모달 -->
+    <string name="bus_stop_running_buses_title">운행 버스 정보</string>
+    <string name="bus_stop_no_buses">현재 운행 중인 버스가 없습니다</string>
+    <string name="bus_stop_view_timetable">전체 시간표 보기</string>
+    <string name="bus_stop_close_cd">닫기</string>
+    <string name="bus_stop_arrival_time">도착 예정: %1$s</string>
+    <string name="bus_stop_destination">목적지: %1$s</string>
+    <string name="bus_stop_status_waiting">대기</string>
+    <string name="bus_stop_status_departed">출발</string>
+
+    <!-- 버스 탑승 확인 -->
+    <string name="bus_ride_confirm_title">탑승하시겠습니까?</string>
+    <string name="bus_ride_confirm_message">%1$s · %2$s 출발\n목적지: %3$s</string>
+    <string name="bus_ride_alarm_reserved">알람이 예약되었습니다</string>
+
     <!-- Notifications 화면 -->
     <string name="notifications_title">알림</string>
     <string name="notifications_subtitle">공지사항 및 운행 안내</string>
@@ -96,6 +111,7 @@
     <string name="calendar_delete_message">정말 이 예약을 삭제하시겠습니까?\n삭제된 예약은 복구할 수 없습니다.</string>
     <string name="common_delete">삭제</string>
     <string name="common_cancel">취소</string>
+    <string name="common_confirm">확인</string>
     
     <!-- Calendar Validation 에러 메시지 -->
     <string name="calendar_error_select_day_first">먼저 요일을 선택해주세요</string>
@@ -155,4 +171,10 @@
 
     <!-- 예외 기반 에러 -->
     <string name="error_timeout">응답이 지연되고 있어요. 잠시 후 다시 시도해볼 수 있어요</string>
+
+    <!-- 위치 추적 서비스 -->
+    <string name="location_tracking_channel_name">위치 추적</string>
+    <string name="location_tracking_channel_description">백그라운드에서 현재 위치를 추적합니다</string>
+    <string name="location_tracking_notification_title">셔틀버스 위치 추적 중</string>
+    <string name="location_tracking_notification_text">근처 정류장 및 버스 위치를 확인하고 있습니다</string>
 </resources>

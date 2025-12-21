@@ -3,10 +3,15 @@ package com.tukorea.bus.ui.quickride
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tukorea.bus.domain.error.MapError
 import com.tukorea.bus.domain.usecase.GetAvailableBusesUseCase
 import com.tukorea.bus.domain.usecase.GetDefaultLocationsUseCase
 import com.tukorea.bus.domain.usecase.GetLocationsUseCase
+import com.tukorea.bus.domain.usecase.GetNearestBusStopUseCase
+import com.tukorea.bus.domain.usecase.NearestBusStopResult
 import com.tukorea.bus.domain.usecase.GetRouteSchedulesUseCase
+import com.tukorea.bus.domain.util.DistanceCalculator
+import com.tukorea.bus.domain.util.Result
 import com.tukorea.bus.ui.common.ErrorMapper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +30,7 @@ class QuickRideViewModel @Inject constructor(
     private val getLocationsUseCase: GetLocationsUseCase,
     private val getRouteSchedulesUseCase: GetRouteSchedulesUseCase,
     private val getDefaultLocationsUseCase: GetDefaultLocationsUseCase,
+    private val getNearestBusStopUseCase: GetNearestBusStopUseCase,
     private val errorMapper: ErrorMapper
 ) : ViewModel() {
 
@@ -73,9 +79,10 @@ class QuickRideViewModel @Inject constructor(
                     )
                     _uiState.value = newState
 
-                    // 초기 진입 시 기본 출발/도착지가 모두 설정되면 바로 이용 가능 버스 목록을 불러온다.
-                    if (newState.currentLocation.isNotEmpty() && newState.selectedDestination.isNotEmpty()) {
-                        loadAvailableBuses()
+                    // 초기 진입 시 기본 출발/도착지가 모두 설정되면
+                    // 목적지 기준으로 가장 가까운 정류장을 계산한 뒤 이용 가능 버스를 불러온다.
+                    if (newState.selectedDestination.isNotEmpty()) {
+                        loadNearestBusStop()
                     }
                 }
         }
@@ -100,7 +107,9 @@ class QuickRideViewModel @Inject constructor(
     fun updateDestination(destination: String) {
         Log.d(TAG, "목적지 선택 변경: $destination")
         _uiState.value = _uiState.value.copy(selectedDestination = destination)
-        loadAvailableBuses()
+        // 목적지 변경 시, 해당 목적지로 갈 수 있는 가장 가까운 정류장을 다시 계산
+        // 이후 최신 출발지/목적지 조합으로 버스 목록 갱신
+        loadNearestBusStop()
     }
 
     /**
@@ -125,7 +134,7 @@ class QuickRideViewModel @Inject constructor(
                 "이용 가능 버스 조회 시작: 출발=${state.currentLocation}, 도착=${state.selectedDestination}"
             )
             _uiState.value = state.copy(isLoading = true, error = null)
-            
+
             getAvailableBusesUseCase(state.currentLocation, state.selectedDestination)
                 .catch { exception ->
                     val message = errorMapper.run { exception.toUserMessage() }
@@ -144,5 +153,57 @@ class QuickRideViewModel @Inject constructor(
         )
                 }
         }
+    }
+
+    /**
+     * 현재 위치에서 가장 가까운 정류장을 찾아 UI 상태를 업데이트합니다.
+     * 하버사인 공식을 사용하여 거리를 계산하고, 가장 가까운 정류장의 이름과 거리를 표시합니다.
+     */
+    private fun loadNearestBusStop() {
+        viewModelScope.launch {
+            val destination = _uiState.value.selectedDestination
+            if (destination.isEmpty()) {
+                Log.d(TAG, "가장 가까운 정류장 찾기 건너뜀: 목적지 미선택")
+                return@launch
+            }
+
+            Log.d(TAG, "가장 가까운 정류장 찾기 시작 (목적지=$destination)")
+            _uiState.value = _uiState.value.copy(isLoadingLocation = true)
+
+            when (val result = getNearestBusStopUseCase(destination)) {
+                is Result.Success<*> -> {
+                    val nearestStop = result.data as NearestBusStopResult
+                    val distanceText = DistanceCalculator.formatDistance(nearestStop.distance)
+                    Log.d(
+                        TAG,
+                        "가장 가까운 정류장: ${nearestStop.busStop.name}, 거리: $distanceText"
+                    )
+                    _uiState.value = _uiState.value.copy(
+                        currentLocation = nearestStop.busStop.name,
+                        nearestStopDistance = distanceText,
+                        isLoadingLocation = false
+                    )
+
+                    // 가장 가까운 정류장을 찾은 후 이용 가능한 버스 목록 로드
+                    loadAvailableBuses()
+                }
+                is Result.Error<*> -> {
+                    val message = errorMapper.run { (result.error as MapError).toUserMessage() }
+                    Log.w(TAG, "가장 가까운 정류장 찾기 실패: $message")
+                    _uiState.value = _uiState.value.copy(
+                        isLoadingLocation = false,
+                        error = message
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * 수동으로 가장 가까운 정류장을 다시 찾습니다.
+     * UI에서 새로고침 버튼 등을 통해 호출할 수 있습니다.
+     */
+    fun refreshNearestBusStop() {
+        loadNearestBusStop()
     }
 }
