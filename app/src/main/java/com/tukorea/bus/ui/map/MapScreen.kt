@@ -14,7 +14,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,8 +35,10 @@ import com.naver.maps.map.LocationTrackingMode
 import com.naver.maps.map.MapView
 import com.naver.maps.map.NaverMap
 import com.naver.maps.map.util.FusedLocationSource
+import com.tukorea.bus.domain.model.BusMarkerLocation
 import com.tukorea.bus.domain.model.MapLocation
 import com.tukorea.bus.domain.util.LocationUtils
+import com.tukorea.bus.ui.common.ImageUtils
 
 // 카메라 설정 상수
 private const val MAP_MARKER_ZOOM_LEVEL = 15.0
@@ -88,12 +89,38 @@ fun MapScreen(
         }
     }
 
+    // 테스트용 버스 마커 위치 (임의의 위도/경도)
+    // 버스 아이콘이 표시될 위치들을 설정합니다
+    val testBusMarkers = remember {
+        listOf(
+            BusMarkerLocation(
+                latitude = 37.5665, // 서울시청 위도
+                longitude = 126.9780, // 서울시청 경도
+                caption = "버스 #1"
+            ),
+            BusMarkerLocation(
+                latitude = 37.5680, // 서울시청 북쪽 약 200m
+                longitude = 126.9790,
+                caption = "버스 #2"
+            ),
+            BusMarkerLocation(
+                latitude = 37.5650, // 서울시청 남쪽 약 200m
+                longitude = 126.9770,
+                caption = "버스 #3"
+            )
+            // 여기에 더 많은 버스 위치를 추가할 수 있습니다
+            // 예: BusMarkerLocation(latitude = 위도, longitude = 경도, caption = "버스 이름")
+        )
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         // 네이버 맵
         NaverMapView(
             modifier = Modifier.fillMaxSize(),
             currentLocation = state.currentLocation,
             isLocationPermissionGranted = locationPermissionsState.allPermissionsGranted,
+            busMarkers = testBusMarkers, // 버스 마커 추가
+            busStops = state.busStops, // ViewModel에서 관리하는 정류장 목록
             onMapReady = {
                 // 맵 준비되고 권한 있으면 현재 위치 로드
                 if (locationPermissionsState.allPermissionsGranted) {
@@ -135,6 +162,7 @@ fun MapScreen(
             ) {
                 BusStopInfoModal(
                     busStop = state.selectedBusStop!!,
+                    buses = state.busesForSelectedStop, // ViewModel에서 관리하는 버스 목록
                     onDismiss = {
                         viewModel.closeBusStopModal()
                         modalHeight = com.tukorea.bus.ui.home.ModalHeight.LOW
@@ -143,7 +171,7 @@ fun MapScreen(
                         onNavigateTo(com.tukorea.bus.ui.navigation.Screen.QuickRide.route)
                     },
                     onRideStart = { bus ->
-                        if (bus.status == BusStatus.DEPARTED) {
+                        if (bus.status == com.tukorea.bus.domain.repository.BusStatus.DEPARTED) {
                             // 버스가 이미 출발한 경우 바로 탑승 화면으로 이동
                             viewModel.closeBusStopModal()
                             onNavigateTo(com.tukorea.bus.ui.navigation.Screen.Ride.route)
@@ -173,7 +201,9 @@ fun NaverMapView(
     bottomPadding: Int = 0,
     onMapInitialized: ((NaverMap) -> Unit)? = null,
     onBusStopMarkerClick: (com.tukorea.bus.domain.model.BusStop) -> Unit = {},
-    onMapClick: () -> Unit = {}
+    onMapClick: () -> Unit = {},
+    busMarkers: List<BusMarkerLocation> = emptyList(), // 버스 마커 위치 리스트
+    busStops: List<com.tukorea.bus.domain.model.BusStop> = emptyList() // 정류장 목록 (ViewModel에서 관리)
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -190,17 +220,19 @@ fun NaverMapView(
     // NaverMap 인스턴스
     var naverMap by remember { mutableStateOf<NaverMap?>(null) }
 
-    // 정류장 데이터 가져오기
-    val busStops = remember {
-        val dataSource = com.tukorea.bus.data.datasource.BusStopDataSource()
-        dataSource.getAllBusStops()
-    }
+    // 버스 마커 저장 (마커 제거/추가 관리용)
+    val busMarkerList = remember { mutableListOf<com.naver.maps.map.overlay.Marker>() }
 
     // 마지막 업데이트 위치 (중복 업데이트 방지)
     var lastUpdatedLocation by remember { mutableStateOf<MapLocation?>(null) }
 
     // 맵이 준비되었는지 여부
     var isMapReady by remember { mutableStateOf(false) }
+    
+    // 버스 마커 아이콘 (리사이즈된 이미지, 64dp 크기)
+    val busMarkerIcon = remember {
+        ImageUtils.createResizedOverlayImage(context, R.drawable.ic_bus_marker, sizeInDp = 64)
+    }
 
     // 권한 상태 변경 시 LocationTrackingMode 업데이트
     LaunchedEffect(isLocationPermissionGranted, naverMap) {
@@ -248,6 +280,42 @@ fun NaverMapView(
     LaunchedEffect(isMapReady) {
         if (isMapReady) {
             onMapReady()
+        }
+    }
+
+    // 버스 마커 업데이트 (busMarkers 변경 시)
+    LaunchedEffect(busMarkers, naverMap, isMapReady) {
+        naverMap?.let { map ->
+            if (isMapReady) {
+                // 기존 버스 마커 제거
+                busMarkerList.forEach { marker ->
+                    marker.map = null
+                }
+                busMarkerList.clear()
+
+                // 새로운 버스 마커 추가 (커스텀 버스 아이콘 사용, 리사이즈된 이미지)
+                busMarkers.forEach { busLocation ->
+                    val busMarker = com.naver.maps.map.overlay.Marker().apply {
+                        position = LatLng(busLocation.latitude, busLocation.longitude)
+                        captionText = busLocation.caption ?: "버스"
+                        icon = busMarkerIcon
+                        tag = "bus_${busLocation.latitude}_${busLocation.longitude}"
+                    }
+
+                    busMarker.setOnClickListener {
+                        // 버스 마커 클릭 시 카메라 이동
+                        val cameraUpdate = CameraUpdate.scrollAndZoomTo(
+                            LatLng(busLocation.latitude + MAP_MARKER_LATITUDE_OFFSET, busLocation.longitude),
+                            MAP_MARKER_ZOOM_LEVEL
+                        ).animate(CameraAnimation.Easing, MAP_CAMERA_ANIMATION_DURATION_MS.toLong())
+                        map.moveCamera(cameraUpdate)
+                        true
+                    }
+
+                    busMarker.map = map
+                    busMarkerList.add(busMarker)
+                }
+            }
         }
     }
 

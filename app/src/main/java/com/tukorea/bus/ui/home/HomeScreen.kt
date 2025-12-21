@@ -39,8 +39,9 @@ import com.tukorea.bus.R
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.tukorea.bus.domain.model.Reservation
+import com.tukorea.bus.domain.model.BusMarkerLocation
+import com.tukorea.bus.domain.repository.BusStatus
 import com.tukorea.bus.ui.common.BottomModal
-import com.tukorea.bus.ui.map.BusStatus
 import com.tukorea.bus.ui.map.MapViewModel
 import com.tukorea.bus.ui.map.NaverMapView
 import com.tukorea.bus.ui.navigation.Screen
@@ -87,6 +88,17 @@ fun HomeScreen(
     // 모달 높이
     val fixedHeight = screenHeight * 0.35f
 
+    // 서울시청 좌표에 버스 마커 추가
+    val seoulCityHallBusMarker = remember {
+        listOf(
+            BusMarkerLocation(
+                latitude = 37.5665, // 서울시청 위도
+                longitude = 126.9780, // 서울시청 경도
+                caption = "버스"
+            )
+        )
+    }
+
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
@@ -100,6 +112,7 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxSize(),
                     currentLocation = mapState.currentLocation,
                     isLocationPermissionGranted = locationPermissionsState.allPermissionsGranted,
+                    busMarkers = seoulCityHallBusMarker, // 서울시청 좌표에 버스 마커 표시
                     onMapReady = {
                         if (locationPermissionsState.allPermissionsGranted) {
                             mapViewModel.loadCurrentLocation()
@@ -138,6 +151,7 @@ fun HomeScreen(
                 ) {
                     com.tukorea.bus.ui.map.BusStopInfoModal(
                         busStop = mapState.selectedBusStop!!,
+                        buses = mapState.busesForSelectedStop,
                         onDismiss = {
                             mapViewModel.closeBusStopModal()
                             viewModel.updateModalHeight(ModalHeight.MID)

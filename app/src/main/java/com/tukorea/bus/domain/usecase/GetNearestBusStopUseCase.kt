@@ -1,10 +1,10 @@
 package com.tukorea.bus.domain.usecase
 
 import android.util.Log
-import com.tukorea.bus.data.datasource.BusStopDataSource
 import com.tukorea.bus.domain.model.BusStop
 import com.tukorea.bus.domain.model.MapLocation
 import com.tukorea.bus.domain.error.MapError
+import com.tukorea.bus.domain.repository.BusStopRepository
 import com.tukorea.bus.domain.util.DistanceCalculator
 import com.tukorea.bus.domain.util.MapResult
 import com.tukorea.bus.domain.util.Result
@@ -16,7 +16,7 @@ import javax.inject.Inject
  */
 class GetNearestBusStopUseCase @Inject constructor(
     private val getCurrentLocationUseCase: GetCurrentLocationUseCase,
-    private val busStopDataSource: BusStopDataSource
+    private val busStopRepository: BusStopRepository
 ) {
     private companion object {
         private const val TAG = "GetNearestBusStopUseCase"
@@ -45,7 +45,7 @@ class GetNearestBusStopUseCase @Inject constructor(
 
         // 2. 목적지로 가며 현재 시간 기준으로 운행 중인 정류장 가져오기
         val currentTimeMinutes = getCurrentTimeInMinutes()
-        val operatingStops = busStopDataSource.getOperatingBusStops(destination, currentTimeMinutes)
+        val operatingStops = busStopRepository.getOperatingBusStops(destination, currentTimeMinutes)
 
         if (operatingStops.isEmpty()) {
             Log.w(TAG, "목적지($destination)로 가는 현재 운행 중인 정류장이 없습니다.")

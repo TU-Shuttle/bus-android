@@ -1,8 +1,8 @@
 package com.tukorea.bus.data.datasource
 
 import com.tukorea.bus.domain.model.BusStop
-import com.tukorea.bus.ui.map.BusStopBusInfo
-import com.tukorea.bus.ui.map.BusStatus
+import com.tukorea.bus.domain.repository.BusStopBusInfo
+import com.tukorea.bus.domain.repository.BusStatus
 import javax.inject.Inject
 import javax.inject.Singleton
 
