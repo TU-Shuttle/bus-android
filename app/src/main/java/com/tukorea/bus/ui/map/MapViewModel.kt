@@ -3,6 +3,10 @@ package com.tukorea.bus.ui.map
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tukorea.bus.domain.model.BusStop
+import com.tukorea.bus.domain.repository.BusStopBusInfo
+import com.tukorea.bus.domain.usecase.GetAllBusStopsUseCase
+import com.tukorea.bus.domain.usecase.GetBusesForStopUseCase
 import com.tukorea.bus.domain.usecase.GetCurrentLocationUseCase
 import com.tukorea.bus.domain.util.Result
 import com.tukorea.bus.ui.common.ErrorMapper
@@ -22,6 +26,8 @@ import javax.inject.Inject
 @HiltViewModel
 class MapViewModel @Inject constructor(
     private val getCurrentLocationUseCase: GetCurrentLocationUseCase,
+    private val getAllBusStopsUseCase: GetAllBusStopsUseCase,
+    private val getBusesForStopUseCase: GetBusesForStopUseCase,
     private val errorMapper: ErrorMapper
 ) : ViewModel() {
 
@@ -35,6 +41,25 @@ class MapViewModel @Inject constructor(
     init {
         Log.d(TAG, "초기화: 위치 권한을 확인합니다.")
         checkLocationPermission()
+        loadBusStops()
+    }
+    
+    /**
+     * 정류장 목록을 로드합니다.
+     * UseCase를 통해 정류장 정보를 가져와 상태를 업데이트합니다.
+     */
+    private fun loadBusStops() {
+        Log.d(TAG, "정류장 목록 불러오기 시작")
+        viewModelScope.launch {
+            try {
+                val busStops = getAllBusStopsUseCase()
+                Log.d(TAG, "정류장 목록 불러오기 성공: ${busStops.size}개")
+                _state.value = _state.value.copy(busStops = busStops)
+            } catch (e: Exception) {
+                Log.e(TAG, "정류장 목록 불러오기 실패", e)
+                // 정류장 로드 실패는 치명적이지 않으므로 에러를 표시하지 않음
+            }
+        }
     }
 
     /**
@@ -93,14 +118,33 @@ class MapViewModel @Inject constructor(
 
     /**
      * 정류장 마커를 클릭했을 때 호출됩니다.
-     * 선택된 정류장 정보를 표시합니다.
+     * 선택된 정류장 정보를 표시하고 해당 정류장의 버스 정보를 로드합니다.
      */
     fun onBusStopSelected(busStop: com.tukorea.bus.domain.model.BusStop) {
         Log.d(TAG, "정류장 선택: ${busStop.name}")
         _state.value = _state.value.copy(
             selectedBusStop = busStop,
-            isBusStopModalVisible = true
+            isBusStopModalVisible = true,
+            busesForSelectedStop = emptyList() // 초기화
         )
+        loadBusesForStop(busStop.id)
+    }
+    
+    /**
+     * 특정 정류장의 버스 정보를 로드합니다.
+     */
+    private fun loadBusesForStop(busStopId: String) {
+        Log.d(TAG, "정류장 버스 정보 불러오기 시작: $busStopId")
+        viewModelScope.launch {
+            try {
+                val buses = getBusesForStopUseCase(busStopId)
+                Log.d(TAG, "정류장 버스 정보 불러오기 성공: ${buses.size}개")
+                _state.value = _state.value.copy(busesForSelectedStop = buses)
+            } catch (e: Exception) {
+                Log.e(TAG, "정류장 버스 정보 불러오기 실패", e)
+                // 버스 정보 로드 실패는 치명적이지 않으므로 에러를 표시하지 않음
+            }
+        }
     }
 
     /**

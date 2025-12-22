@@ -6,7 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -19,29 +18,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import com.tukorea.bus.R
 import com.tukorea.bus.domain.model.BusStop
+import com.tukorea.bus.domain.repository.BusStopBusInfo
+import com.tukorea.bus.domain.repository.BusStatus
 import com.tukorea.bus.ui.theme.*
-
-/**
- * 정류장 버스 정보 (더미 데이터)
- */
-data class BusStopBusInfo(
-    val route: String,
-    val status: BusStatus,
-    val arrivalTime: String,
-    val destination: String
-)
-
-/**
- * 버스 상태
- */
-enum class BusStatus {
-    WAITING,   // 대기
-    DEPARTED   // 출발
-}
 
 /**
  * 정류장 정보를 보여주는 모달 컴포넌트
@@ -49,6 +31,7 @@ enum class BusStatus {
 @Composable
 fun BusStopInfoModal(
     busStop: BusStop,
+    buses: List<BusStopBusInfo>, // ViewModel에서 관리하는 버스 목록
     onDismiss: () -> Unit,
     onViewTimeTable: () -> Unit,
     onRideStart: (BusStopBusInfo) -> Unit = {}
@@ -56,12 +39,6 @@ fun BusStopInfoModal(
     // 확인 다이얼로그 상태
     var showConfirmDialog by remember { mutableStateOf(false) }
     var selectedBus by remember { mutableStateOf<BusStopBusInfo?>(null) }
-
-    // 버스 데이터 소스에서 정류장별 버스 정보 가져오기
-    val buses = remember(busStop.id) {
-        val dataSource = com.tukorea.bus.data.datasource.BusStopDataSource()
-        dataSource.getBusesForStop(busStop.id)
-    }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -195,7 +172,7 @@ fun BusStopInfoModal(
                 selectedBus = null
             },
             title = stringResource(id = R.string.bus_ride_confirm_title),
-            message = stringResource(id = R.string.bus_ride_confirm_message, bus.route, bus.arrivalTime, bus.destination),
+            message = stringResource(id = R.string.bus_ride_confirm_message, bus.route, bus.time, bus.destination),
             icon = Icons.Default.DirectionsTransit,
             confirmButtonText = stringResource(id = R.string.common_confirm),
             dismissButtonText = stringResource(id = R.string.common_cancel),
@@ -300,7 +277,7 @@ fun BusInfoCard(
                     }
                 }
                 Text(
-                    text = stringResource(id = R.string.bus_stop_arrival_time, bus.arrivalTime),
+                    text = stringResource(id = R.string.bus_stop_arrival_time, bus.time),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = Gray900
