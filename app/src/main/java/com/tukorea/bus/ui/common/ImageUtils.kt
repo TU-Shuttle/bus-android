@@ -27,6 +27,7 @@ object ImageUtils {
         val density = context.resources.displayMetrics.density
         val sizeInPx = (sizeInDp * density).toInt()
         val originalBitmap = BitmapFactory.decodeResource(context.resources, resourceId)
+            ?: throw IllegalArgumentException("Failed to decode resource $resourceId - image may be corrupted or empty")
         val resizedBitmap = Bitmap.createScaledBitmap(originalBitmap, sizeInPx, sizeInPx, true)
         originalBitmap.recycle() // 원본 비트맵 메모리 해제
         return OverlayImage.fromBitmap(resizedBitmap)
