@@ -99,24 +99,24 @@ class HomeViewModel @Inject constructor(
                     onError = { state, throwable ->
                         val message = errorMapper.run { throwable.toUserMessage() }
                         Log.w(TAG, "중요 알림 관찰 중 오류: 메시지=$message", throwable)
-                    // 오류가 발생해도 알림 배너는 표시하지 않음
+                        // 오류가 발생해도 알림 배너는 표시하지 않음
                         state.copy(
-                        hasUnreadImportantNotice = false,
-                        firstUnreadImportantNoticeId = null
-                    )
+                            hasUnreadImportantNotice = false,
+                            firstUnreadImportantNoticeId = null
+                        )
                     },
                     onSuccess = { state, notifications ->
-                    val result = getUnreadImportantNotificationsUseCase(notifications)
+                        val result = getUnreadImportantNotificationsUseCase(notifications)
                         Log.d(
                             TAG,
                             "읽지 않은 중요 알림: 있음=${result.hasUnreadImportant}, ID=${result.firstUnreadImportantId}"
                         )
 
                         state.copy(
-                        hasUnreadImportantNotice = result.hasUnreadImportant,
-                        firstUnreadImportantNoticeId = result.firstUnreadImportantId
-                    )
-                }
+                            hasUnreadImportantNotice = result.hasUnreadImportant,
+                            firstUnreadImportantNoticeId = result.firstUnreadImportantId
+                        )
+                    }
                 )
         }
     }
