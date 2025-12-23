@@ -15,6 +15,7 @@ import com.tukorea.bus.ui.notifications.NotificationsScreen
 import com.tukorea.bus.ui.quickride.QuickRideScreen
 import com.tukorea.bus.ui.ride.RideScreen
 import com.tukorea.bus.ui.settings.SettingsScreen
+import com.tukorea.bus.ui.stations.StationsScreen
 import com.tukorea.bus.ui.temp.TempScreen
 
 @Composable
@@ -107,6 +108,9 @@ fun BusNavGraph(
         }
         composable(Screen.Temp.route) {
             TempScreen()
+        }
+        composable(Screen.Stations.route) {
+            StationsScreen()
         }
     }
 }
