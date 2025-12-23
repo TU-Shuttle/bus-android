@@ -92,7 +92,7 @@ private fun SplashContent() {
         verticalArrangement = Arrangement.Center
     ) {
         Image(
-            painter = painterResource(id = R.drawable.ic_launcher_foreground),
+            painter = painterResource(id = R.mipmap.ic_launcher),
             contentDescription = stringResource(id = R.string.app_name),
             modifier = Modifier.size(120.dp)
         )
@@ -100,7 +100,7 @@ private fun SplashContent() {
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = stringResource(id = R.string.app_name),
+            text = "TU Shuttle",
             color = Color.White,
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
