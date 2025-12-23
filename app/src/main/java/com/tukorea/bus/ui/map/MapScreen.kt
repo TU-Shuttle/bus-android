@@ -35,10 +35,18 @@ import com.naver.maps.map.LocationTrackingMode
 import com.naver.maps.map.MapView
 import com.naver.maps.map.NaverMap
 import com.naver.maps.map.util.FusedLocationSource
+import com.tukorea.bus.data.datasource.BusStopDataSource
 import com.tukorea.bus.domain.model.BusMarkerLocation
+import com.tukorea.bus.domain.model.BusStop
 import com.tukorea.bus.domain.model.MapLocation
+import com.tukorea.bus.domain.repository.BusStatus
 import com.tukorea.bus.domain.util.LocationUtils
+import com.tukorea.bus.ui.common.BottomModal
 import com.tukorea.bus.ui.common.ImageUtils
+import com.tukorea.bus.ui.home.ModalHeight
+import com.tukorea.bus.ui.navigation.Screen
+import com.naver.maps.map.overlay.Marker
+import com.naver.maps.map.overlay.OverlayImage
 
 // 카메라 설정 상수
 private const val MAP_MARKER_ZOOM_LEVEL = 15.0
@@ -58,7 +66,7 @@ fun MapScreen(
     val density = androidx.compose.ui.platform.LocalDensity.current
 
     // 모달 높이 상태
-    var modalHeight by remember { mutableStateOf(com.tukorea.bus.ui.home.ModalHeight.LOW) }
+    var modalHeight by remember { mutableStateOf(ModalHeight.LOW) }
 
     // 위치 권한 상태
     val locationPermissionsState = rememberMultiplePermissionsState(
@@ -129,13 +137,13 @@ fun MapScreen(
             },
             onBusStopMarkerClick = { busStop ->
                 viewModel.onBusStopSelected(busStop)
-                modalHeight = com.tukorea.bus.ui.home.ModalHeight.MID
+                modalHeight = ModalHeight.MID
             },
             onMapClick = {
                 // 지도 클릭 시 모달 닫기
                 if (state.isBusStopModalVisible) {
                     viewModel.closeBusStopModal()
-                    modalHeight = com.tukorea.bus.ui.home.ModalHeight.LOW
+                    modalHeight = ModalHeight.LOW
                 }
             }
         )
@@ -151,7 +159,7 @@ fun MapScreen(
 
         // 정류장 정보 모달
         if (state.isBusStopModalVisible && state.selectedBusStop != null) {
-            com.tukorea.bus.ui.common.BottomModal(
+            BottomModal(
                 modalHeight = modalHeight,
                 onModalHeightChange = { newHeight ->
                     modalHeight = newHeight
@@ -165,16 +173,16 @@ fun MapScreen(
                     buses = state.busesForSelectedStop, // ViewModel에서 관리하는 버스 목록
                     onDismiss = {
                         viewModel.closeBusStopModal()
-                        modalHeight = com.tukorea.bus.ui.home.ModalHeight.LOW
+                        modalHeight = ModalHeight.LOW
                     },
                     onViewTimeTable = {
-                        onNavigateTo(com.tukorea.bus.ui.navigation.Screen.QuickRide.route)
+                        onNavigateTo(Screen.QuickRide.route)
                     },
                     onRideStart = { bus ->
-                        if (bus.status == com.tukorea.bus.domain.repository.BusStatus.DEPARTED) {
+                        if (bus.status == BusStatus.DEPARTED) {
                             // 버스가 이미 출발한 경우 바로 탑승 화면으로 이동
                             viewModel.closeBusStopModal()
-                            onNavigateTo(com.tukorea.bus.ui.navigation.Screen.Ride.route)
+                            onNavigateTo(Screen.Ride.route)
                         } else {
                             // 대기 상태이면 알람 예약
                             android.widget.Toast.makeText(
@@ -200,10 +208,10 @@ fun NaverMapView(
     onMapReady: () -> Unit = {},
     bottomPadding: Int = 0,
     onMapInitialized: ((NaverMap) -> Unit)? = null,
-    onBusStopMarkerClick: (com.tukorea.bus.domain.model.BusStop) -> Unit = {},
+    onBusStopMarkerClick: (BusStop) -> Unit = {},
     onMapClick: () -> Unit = {},
     busMarkers: List<BusMarkerLocation> = emptyList(), // 버스 마커 위치 리스트
-    busStops: List<com.tukorea.bus.domain.model.BusStop> = emptyList() // 정류장 목록 (ViewModel에서 관리)
+    busStops: List<BusStop> = emptyList() // 정류장 목록 (ViewModel에서 관리)
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -221,7 +229,16 @@ fun NaverMapView(
     var naverMap by remember { mutableStateOf<NaverMap?>(null) }
 
     // 버스 마커 저장 (마커 제거/추가 관리용)
-    val busMarkerList = remember { mutableListOf<com.naver.maps.map.overlay.Marker>() }
+    val busMarkerList = remember { mutableListOf<Marker>() }
+
+    // 정류장 마커 저장 (마커 제거/추가 관리용)
+    val busStopMarkerList = remember { mutableListOf<Marker>() }
+
+    // 정류장 데이터 가져오기 (이전 커밋처럼 동기적으로 로드)
+    val localBusStops = remember {
+        val dataSource = BusStopDataSource()
+        dataSource.getAllBusStops()
+    }
 
     // 마지막 업데이트 위치 (중복 업데이트 방지)
     var lastUpdatedLocation by remember { mutableStateOf<MapLocation?>(null) }
@@ -295,7 +312,7 @@ fun NaverMapView(
 
                 // 새로운 버스 마커 추가 (커스텀 버스 아이콘 사용, 리사이즈된 이미지)
                 busMarkers.forEach { busLocation ->
-                    val busMarker = com.naver.maps.map.overlay.Marker().apply {
+                    val busMarker = Marker().apply {
                         position = LatLng(busLocation.latitude, busLocation.longitude)
                         captionText = busLocation.caption ?: "버스"
                         icon = busMarkerIcon
@@ -318,6 +335,7 @@ fun NaverMapView(
             }
         }
     }
+
 
     // 라이프사이클 관리
     DisposableEffect(lifecycleOwner) {
@@ -374,12 +392,12 @@ fun NaverMapView(
                         onMapClick()
                     }
 
-                    // 정류장 마커 추가
-                    busStops.forEach { busStop ->
-                        val marker = com.naver.maps.map.overlay.Marker().apply {
+                    // 정류장 마커 추가 (로컬에서 가져온 데이터)
+                    localBusStops.forEach { busStop ->
+                        val marker = Marker().apply {
                             position = LatLng(busStop.latitude, busStop.longitude)
                             captionText = busStop.name
-                            icon = com.naver.maps.map.overlay.OverlayImage.fromResource(com.tukorea.bus.R.drawable.ic_location_tracking)
+                            icon = OverlayImage.fromResource(R.drawable.ic_location_tracking)
                             tag = busStop
                         }
 
@@ -396,6 +414,7 @@ fun NaverMapView(
                         }
 
                         marker.map = map
+                        busStopMarkerList.add(marker)
                     }
 
                     isMapReady = true
