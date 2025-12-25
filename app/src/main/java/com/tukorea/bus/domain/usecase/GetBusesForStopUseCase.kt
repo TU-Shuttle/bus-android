@@ -1,6 +1,6 @@
 package com.tukorea.bus.domain.usecase
 
-import com.tukorea.bus.domain.repository.BusStopBusInfo
+import com.tukorea.bus.domain.model.BusStopBusInfo
 import com.tukorea.bus.domain.repository.BusStopRepository
 import javax.inject.Inject
 

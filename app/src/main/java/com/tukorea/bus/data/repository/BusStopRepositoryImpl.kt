@@ -1,9 +1,9 @@
 package com.tukorea.bus.data.repository
 
+import com.tukorea.bus.domain.model.BusStatus
 import com.tukorea.bus.domain.model.BusStop
-import com.tukorea.bus.domain.repository.BusStopBusInfo
+import com.tukorea.bus.domain.model.BusStopBusInfo
 import com.tukorea.bus.domain.repository.BusStopRepository
-import com.tukorea.bus.domain.repository.BusStatus
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -80,7 +80,7 @@ class BusStopRepositoryImpl @Inject constructor() : BusStopRepository {
     private val dummyBusesForStop = mapOf(
         "jeongwang_station" to listOf(
             BusStopBusInfo("A노선", BusStatus.WAITING, "10:00", "정왕역"),
-            BusStopBusInfo("B노선", BusStatus.DEPARTED, "09:45", "정왕역"),
+            BusStopBusInfo("B노선", BusStatus.RUNNING, "09:45", "정왕역"),
             BusStopBusInfo("순환", BusStatus.WAITING, "10:15", "정왕역")
         ),
         "campus2_direction_after_10" to listOf(
@@ -88,13 +88,13 @@ class BusStopRepositoryImpl @Inject constructor() : BusStopRepository {
             BusStopBusInfo("B노선", BusStatus.WAITING, "14:30", "2캠퍼스")
         ),
         "campus2_main" to listOf(
-            BusStopBusInfo("A노선", BusStatus.DEPARTED, "08:00", "1캠퍼스"),
+            BusStopBusInfo("A노선", BusStatus.RUNNING, "08:00", "1캠퍼스"),
             BusStopBusInfo("B노선", BusStatus.WAITING, "09:00", "1캠퍼스"),
             BusStopBusInfo("순환", BusStatus.WAITING, "09:30", "정왕역")
         ),
         "campus1_to_campus2" to listOf(
             BusStopBusInfo("A노선", BusStatus.WAITING, "08:30", "2캠퍼스"),
-            BusStopBusInfo("B노선", BusStatus.DEPARTED, "08:00", "2캠퍼스")
+            BusStopBusInfo("B노선", BusStatus.RUNNING, "08:00", "2캠퍼스")
         ),
         "jeongwang_to_main_before_5pm" to listOf(
             BusStopBusInfo("C노선", BusStatus.WAITING, "14:00", "본교"),
@@ -109,8 +109,6 @@ class BusStopRepositoryImpl @Inject constructor() : BusStopRepository {
             BusStopBusInfo("G노선", BusStatus.WAITING, "12:45", "2캠퍼스")
         )
     )
-
-    // endregion
 
     override suspend fun getAllBusStops(): List<BusStop> {
         return dummyBusStops
