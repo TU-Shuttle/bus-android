@@ -377,7 +377,6 @@ fun NaverMapView(
         }
     }
 
-
     // 라이프사이클 관리
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
