@@ -44,9 +44,17 @@ fun HomeScreen(
         )
     )
 
+    // 권한 요청 결과 처리
     LaunchedEffect(locationPermissionsState.allPermissionsGranted) {
         if (locationPermissionsState.allPermissionsGranted) {
             mapViewModel.onLocationPermissionGranted()
+        }
+    }
+
+    // 권한 요청 (처음 진입 시)
+    LaunchedEffect(Unit) {
+        if (!locationPermissionsState.allPermissionsGranted) {
+            locationPermissionsState.launchMultiplePermissionRequest()
         }
     }
 
