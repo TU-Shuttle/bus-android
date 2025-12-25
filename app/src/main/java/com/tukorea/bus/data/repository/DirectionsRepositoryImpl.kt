@@ -47,18 +47,24 @@ class DirectionsRepositoryImpl @Inject constructor(
         }
     }
 
+    /**
+     * DirectionsResponse → Directions (Domain 모델) 변환
+     */
     private fun DirectionsResponse.toDomain(): Directions {
         val routes = mutableListOf<Route>()
         
         data?.route?.let { routeData ->
-            routeData.traoptimal?.forEach { option ->
-                routes.add(option.toRoute(RouteType.TRAOPTIMAL))
-            }
+            // trafast 경로
             routeData.trafast?.forEach { option ->
-                routes.add(option.toRoute(RouteType.TRAFAST))
+                routes.add(option.toDomain(RouteType.TRAFAST))
             }
+            // traoptimal 경로
+            routeData.traoptimal?.forEach { option ->
+                routes.add(option.toDomain(RouteType.TRAOPTIMAL))
+            }
+            // tracomfort 경로
             routeData.tracomfort?.forEach { option ->
-                routes.add(option.toRoute(RouteType.TRACOMFORT))
+                routes.add(option.toDomain(RouteType.TRACOMFORT))
             }
         }
 
@@ -68,37 +74,36 @@ class DirectionsRepositoryImpl @Inject constructor(
         )
     }
 
-    private fun RouteOption.toRoute(type: RouteType): Route {
+    private fun RouteOption.toDomain(type: RouteType): Route {
         return Route(
             type = type,
-            summary = RouteSummaryInfo(
-                startLocation = Coordinate(
-                    latitude = summary?.start?.location?.getOrNull(1) ?: 0.0,
-                    longitude = summary?.start?.location?.getOrNull(0) ?: 0.0
-                ),
-                goalLocation = Coordinate(
-                    latitude = summary?.goal?.location?.getOrNull(1) ?: 0.0,
-                    longitude = summary?.goal?.location?.getOrNull(0) ?: 0.0
-                ),
-                totalDistanceMeters = summary?.distance ?: 0,
-                totalDurationMinutes = (summary?.duration ?: 0) / 60000,
-                departureTime = summary?.departureTime ?: "",
-                tollFare = summary?.tollFare ?: 0,
-                taxiFare = summary?.taxiFare ?: 0,
-                fuelPrice = summary?.fuelPrice ?: 0
-            ),
-            path = path?.map { coords ->
-                Coordinate(
-                    latitude = coords.getOrNull(1) ?: 0.0,
-                    longitude = coords.getOrNull(0) ?: 0.0
+            summary = summary?.let {
+                RouteSummaryInfo(
+                    startLocation = it.start?.location?.toCoordinate() ?: Coordinate(0.0, 0.0),
+                    goalLocation = it.goal?.location?.toCoordinate() ?: Coordinate(0.0, 0.0),
+                    totalDistanceMeters = it.distance ?: 0,
+                    totalDurationMinutes = ((it.duration ?: 0) / 60000).toInt(), // 밀리초 → 분
+                    departureTime = it.departureTime ?: "",
+                    tollFare = it.tollFare ?: 0,
+                    taxiFare = it.taxiFare ?: 0,
+                    fuelPrice = it.fuelPrice ?: 0
                 )
-            } ?: emptyList(),
+            } ?: RouteSummaryInfo(
+                startLocation = Coordinate(0.0, 0.0),
+                goalLocation = Coordinate(0.0, 0.0),
+                totalDistanceMeters = 0,
+                totalDurationMinutes = 0,
+                departureTime = "",
+                tollFare = 0,
+                taxiFare = 0,
+                fuelPrice = 0
+            ),
+            path = path?.map { it.toCoordinate() } ?: emptyList(),
             sections = section?.map { sec ->
                 SectionInfo(
                     name = sec.name ?: "",
                     distance = sec.distance ?: 0,
                     congestion = when (sec.congestion) {
-                        0 -> CongestionLevel.UNKNOWN
                         1 -> CongestionLevel.SMOOTH
                         2 -> CongestionLevel.SLOW
                         3 -> CongestionLevel.DELAY
@@ -112,9 +117,20 @@ class DirectionsRepositoryImpl @Inject constructor(
                 GuideInfo(
                     instructions = g.instructions ?: "",
                     distance = g.distance ?: 0,
-                    durationMinutes = (g.duration ?: 0) / 60000
+                    durationMinutes = ((g.duration ?: 0) / 60000).toInt()
                 )
             } ?: emptyList()
         )
+    }
+
+    /**
+     * [경도, 위도] → Coordinate 변환
+     */
+    private fun List<Double>.toCoordinate(): Coordinate {
+        return if (size >= 2) {
+            Coordinate(latitude = this[1], longitude = this[0])
+        } else {
+            Coordinate(0.0, 0.0)
+        }
     }
 }

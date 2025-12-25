@@ -51,12 +51,6 @@ class GetDirectionsUseCase @Inject constructor(
         endLng: Double,
         waypoints: List<Coordinate> = emptyList()
     ): AppResult<Directions> {
-        return repository.getDirections(
-            startLat = startLat,
-            startLng = startLng,
-            endLat = endLat,
-            endLng = endLng,
-            waypoints = waypoints
-        )
+        return repository.getDirections(startLat, startLng, endLat, endLng, waypoints)
     }
 }

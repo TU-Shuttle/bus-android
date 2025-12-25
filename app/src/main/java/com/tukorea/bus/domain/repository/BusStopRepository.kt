@@ -1,7 +1,6 @@
 package com.tukorea.bus.domain.repository
 
 import com.tukorea.bus.domain.model.BusStop
-import com.tukorea.bus.domain.model.BusStopBusInfo
 
 /**
  * 정류장 정보를 제공하는 Repository 인터페이스
@@ -31,5 +30,24 @@ interface BusStopRepository {
      * @return 정류장의 버스 정보 목록
      */
     suspend fun getBusesForStop(busStopId: String): List<BusStopBusInfo>
+}
+
+/**
+ * 정류장의 버스 정보를 나타내는 데이터 클래스
+ * Domain 레이어에서 사용하는 모델입니다.
+ */
+data class BusStopBusInfo(
+    val route: String,
+    val status: BusStatus,
+    val time: String,
+    val destination: String
+)
+
+/**
+ * 버스 상태를 나타내는 enum
+ */
+enum class BusStatus {
+    WAITING,    // 대기 중
+    DEPARTED    // 출발함
 }
 
