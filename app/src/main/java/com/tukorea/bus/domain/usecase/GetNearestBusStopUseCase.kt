@@ -1,6 +1,5 @@
 package com.tukorea.bus.domain.usecase
 
-import android.util.Log
 import com.tukorea.bus.domain.model.BusStop
 import com.tukorea.bus.domain.model.MapLocation
 import com.tukorea.bus.domain.error.MapError
@@ -18,9 +17,6 @@ class GetNearestBusStopUseCase @Inject constructor(
     private val getCurrentLocationUseCase: GetCurrentLocationUseCase,
     private val busStopRepository: BusStopRepository
 ) {
-    private companion object {
-        private const val TAG = "GetNearestBusStopUseCase"
-    }
 
     /**
      * 현재 위치를 기반으로 특정 목적지로 가는 가장 가까운 정류장을 찾습니다.
@@ -33,26 +29,18 @@ class GetNearestBusStopUseCase @Inject constructor(
         // 1. 현재 위치 가져오기
         val locationResult = getCurrentLocationUseCase()
         if (locationResult is Result.Error) {
-            Log.w(TAG, "위치 정보를 가져올 수 없습니다: ${locationResult.error}")
             return locationResult
         }
 
         val currentLocation = (locationResult as Result.Success).data
-        Log.d(
-            TAG,
-            "현재 위치: lat=${currentLocation.latitude}, lng=${currentLocation.longitude}"
-        )
 
         // 2. 목적지로 가며 현재 시간 기준으로 운행 중인 정류장 가져오기
         val currentTimeMinutes = getCurrentTimeInMinutes()
         val operatingStops = busStopRepository.getOperatingBusStops(destination, currentTimeMinutes)
 
         if (operatingStops.isEmpty()) {
-            Log.w(TAG, "목적지($destination)로 가는 현재 운행 중인 정류장이 없습니다.")
             return Result.Error(MapError.Unknown("목적지로 가는 현재 운행 중인 정류장이 없습니다"))
         }
-
-        Log.d(TAG, "목적지($destination)로 가는 운행 중인 정류장 개수: ${operatingStops.size}")
 
         // 3. 각 정류장까지의 거리 계산 및 가장 가까운 정류장 찾기
         val nearestStop = operatingStops
@@ -68,10 +56,6 @@ class GetNearestBusStopUseCase @Inject constructor(
             .minByOrNull { it.second }
 
         return if (nearestStop != null) {
-            Log.d(
-                TAG,
-                "가장 가까운 정류장: ${nearestStop.first.name}, 거리: ${DistanceCalculator.formatDistance(nearestStop.second)}"
-            )
             Result.Success(
                 NearestBusStopResult(
                     busStop = nearestStop.first,
@@ -80,7 +64,6 @@ class GetNearestBusStopUseCase @Inject constructor(
                 )
             )
         } else {
-            Log.w(TAG, "가장 가까운 정류장을 찾을 수 없습니다.")
             Result.Error(MapError.Unknown("가장 가까운 정류장을 찾을 수 없습니다"))
         }
     }

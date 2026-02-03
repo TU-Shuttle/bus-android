@@ -65,7 +65,7 @@ private fun SplashScreen(
     viewModel: SplashViewModel = hiltViewModel(),
     onNavigateToMain: () -> Unit
 ) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     // 초기화 시작
     LaunchedEffect(Unit) {

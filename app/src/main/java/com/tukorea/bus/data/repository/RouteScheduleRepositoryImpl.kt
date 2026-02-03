@@ -3,10 +3,12 @@ package com.tukorea.bus.data.repository
 import com.tukorea.bus.domain.model.RouteScheduleTemplate
 import com.tukorea.bus.domain.repository.RouteScheduleRepository
 import javax.inject.Inject
+import javax.inject.Singleton
 
 /**
  * 노선별 시간표를 하드코딩된 리스트로 제공하는 임시 구현체
  */
+@Singleton
 class RouteScheduleRepositoryImpl @Inject constructor() : RouteScheduleRepository {
 
     override suspend fun getRouteSchedules(): List<RouteScheduleTemplate> {

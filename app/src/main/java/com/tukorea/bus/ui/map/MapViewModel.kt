@@ -31,8 +31,8 @@ class MapViewModel @Inject constructor(
     private val errorMapper: ErrorMapper
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(MapUiState())
-    val state: StateFlow<MapUiState> = _state
+    private val _uiState = MutableStateFlow(MapUiState())
+    val uiState: StateFlow<MapUiState> = _uiState
 
     private companion object {
         private const val TAG = "MapViewModel"
@@ -54,7 +54,7 @@ class MapViewModel @Inject constructor(
             try {
                 val busStops = getAllBusStopsUseCase()
                 Log.d(TAG, "정류장 목록 불러오기 성공: ${busStops.size}개")
-                _state.value = _state.value.copy(busStops = busStops)
+                _uiState.value = _uiState.value.copy(busStops = busStops)
             } catch (e: Exception) {
                 Log.e(TAG, "정류장 목록 불러오기 실패", e)
                 // 정류장 로드 실패는 치명적이지 않으므로 에러를 표시하지 않음
@@ -69,7 +69,7 @@ class MapViewModel @Inject constructor(
     fun checkLocationPermission() {
         val isGranted = getCurrentLocationUseCase.isLocationPermissionGranted()
         Log.d(TAG, "위치 권한 여부 확인: 허용 여부=$isGranted")
-        _state.value = _state.value.copy(isLocationPermissionGranted = isGranted)
+        _uiState.value = _uiState.value.copy(isLocationPermissionGranted = isGranted)
     }
 
     /**
@@ -79,7 +79,7 @@ class MapViewModel @Inject constructor(
     fun loadCurrentLocation() {
         Log.d(TAG, "현재 위치 불러오기 시작")
         viewModelScope.launch {
-            _state.value = _state.value.copy(isLoading = true, error = null)
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
             when (val result = getCurrentLocationUseCase()) {
                 is Result.Success -> {
@@ -87,7 +87,7 @@ class MapViewModel @Inject constructor(
                         TAG,
                         "현재 위치 불러오기 성공: 위도=${result.data.latitude}, 경도=${result.data.longitude}"
                     )
-                    _state.value = _state.value.copy(
+                    _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         currentLocation = result.data,
                         error = null
@@ -97,7 +97,7 @@ class MapViewModel @Inject constructor(
                 is Result.Error -> {
                     val message = errorMapper.run { result.error.toUserMessage() }
                     Log.w(TAG, "현재 위치 불러오기 실패: 메시지=$message, 원본오류=${result.error}")
-                    _state.value = _state.value.copy(
+                    _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         error = message
                     )
@@ -112,7 +112,7 @@ class MapViewModel @Inject constructor(
      */
     fun onLocationPermissionGranted() {
         Log.d(TAG, "위치 권한이 허용되었습니다.")
-        _state.value = _state.value.copy(isLocationPermissionGranted = true)
+        _uiState.value = _uiState.value.copy(isLocationPermissionGranted = true)
         loadCurrentLocation()
     }
 
@@ -120,9 +120,9 @@ class MapViewModel @Inject constructor(
      * 정류장 마커를 클릭했을 때 호출됩니다.
      * 선택된 정류장 정보를 표시하고 해당 정류장의 버스 정보를 로드합니다.
      */
-    fun onBusStopSelected(busStop: com.tukorea.bus.domain.model.BusStop) {
+    fun onBusStopSelected(busStop: BusStop) {
         Log.d(TAG, "정류장 선택: ${busStop.name}")
-        _state.value = _state.value.copy(
+        _uiState.value = _uiState.value.copy(
             selectedBusStop = busStop,
             isBusStopModalVisible = true,
             busesForSelectedStop = emptyList() // 초기화
@@ -139,7 +139,7 @@ class MapViewModel @Inject constructor(
             try {
                 val buses = getBusesForStopUseCase(busStopId)
                 Log.d(TAG, "정류장 버스 정보 불러오기 성공: ${buses.size}개")
-                _state.value = _state.value.copy(busesForSelectedStop = buses)
+                _uiState.value = _uiState.value.copy(busesForSelectedStop = buses)
             } catch (e: Exception) {
                 Log.e(TAG, "정류장 버스 정보 불러오기 실패", e)
                 // 버스 정보 로드 실패는 치명적이지 않으므로 에러를 표시하지 않음
@@ -152,7 +152,7 @@ class MapViewModel @Inject constructor(
      */
     fun closeBusStopModal() {
         Log.d(TAG, "정류장 모달 닫기")
-        _state.value = _state.value.copy(
+        _uiState.value = _uiState.value.copy(
             isBusStopModalVisible = false
         )
     }

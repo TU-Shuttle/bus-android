@@ -75,10 +75,10 @@ fun MapScreen(
     onNavigateTo: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    val screenHeight = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp
-    val density = androidx.compose.ui.platform.LocalDensity.current
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+    val density = LocalDensity.current
 
     // 위치 권한 상태
     val locationPermissionsState = rememberMultiplePermissionsState(

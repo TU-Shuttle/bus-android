@@ -11,10 +11,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import com.tukorea.bus.ui.home.ModalHeight
 import com.tukorea.bus.ui.theme.Gray300
@@ -154,11 +158,11 @@ fun BottomModal(
 
                 // 스크롤이 맨 위에 있을 때 아래로 드래그하면 모달을 내리기 위한 nestedScroll
                 val nestedScrollConnection = remember {
-                    object : androidx.compose.ui.input.nestedscroll.NestedScrollConnection {
+                    object : NestedScrollConnection {
                         override fun onPreScroll(
-                            available: androidx.compose.ui.geometry.Offset,
-                            source: androidx.compose.ui.input.nestedscroll.NestedScrollSource
-                        ): androidx.compose.ui.geometry.Offset {
+                            available: Offset,
+                            source: NestedScrollSource
+                        ): Offset {
                             // 스크롤이 맨 위에 있고, 아래로 스크롤하려는 경우 (available.y > 0)
                             if (scrollState.value == 0 && available.y > 0) {
                                 // 모달 높이를 줄임
@@ -169,18 +173,18 @@ fun BottomModal(
                                 isDragging = true
                                 return available // 스크롤 이벤트를 소비
                             }
-                            return androidx.compose.ui.geometry.Offset.Zero
+                            return Offset.Zero
                         }
 
                         override fun onPostScroll(
-                            consumed: androidx.compose.ui.geometry.Offset,
-                            available: androidx.compose.ui.geometry.Offset,
-                            source: androidx.compose.ui.input.nestedscroll.NestedScrollSource
-                        ): androidx.compose.ui.geometry.Offset {
-                            return androidx.compose.ui.geometry.Offset.Zero
+                            consumed: Offset,
+                            available: Offset,
+                            source: NestedScrollSource
+                        ): Offset {
+                            return Offset.Zero
                         }
 
-                        override suspend fun onPreFling(available: androidx.compose.ui.unit.Velocity): androidx.compose.ui.unit.Velocity {
+                        override suspend fun onPreFling(available: Velocity): Velocity {
                             if (isDragging) {
                                 // Fling 종료 시 가장 가까운 단계로 스냅
                                 val newHeight = when {
@@ -192,7 +196,7 @@ fun BottomModal(
                                 onModalHeightChange(newHeight)
                                 return available // velocity를 소비
                             }
-                            return androidx.compose.ui.unit.Velocity.Zero
+                            return Velocity.Zero
                         }
                     }
                 }

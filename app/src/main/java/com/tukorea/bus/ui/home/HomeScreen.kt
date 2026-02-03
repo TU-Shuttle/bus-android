@@ -36,7 +36,7 @@ fun HomeScreen(
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
-    val mapState by mapViewModel.state.collectAsStateWithLifecycle()
+    val mapState by mapViewModel.uiState.collectAsStateWithLifecycle()
 
     val locationPermissionsState = rememberMultiplePermissionsState(
         permissions = listOf(

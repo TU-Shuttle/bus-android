@@ -40,7 +40,7 @@ fun RideScreen(
     mapViewModel: MapViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val mapState by mapViewModel.state.collectAsStateWithLifecycle()
+    val mapState by mapViewModel.uiState.collectAsStateWithLifecycle()
     val remainingMinutes = uiState.remainingMinutes
     val busStatus = uiState.busStatus
 

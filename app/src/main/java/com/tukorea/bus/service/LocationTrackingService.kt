@@ -1,5 +1,6 @@
 package com.tukorea.bus.service
 
+import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -7,10 +8,12 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.tukorea.bus.R
 import com.tukorea.bus.data.location.LocationDataSource
 import com.tukorea.bus.domain.util.Result
@@ -49,14 +52,39 @@ class LocationTrackingService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.d(TAG, "LocationTrackingService 시작됨")
+        Log.d(TAG, "LocationTrackingService 시작 요청")
 
+        // 위치 권한 체크
+        if (!hasLocationPermission()) {
+            Log.w(TAG, "위치 권한이 없습니다. 서비스를 중지합니다.")
+            stopSelf()
+            return START_NOT_STICKY
+        }
+
+        Log.d(TAG, "LocationTrackingService 시작됨")
         val notification = createNotification()
         startForeground(NOTIFICATION_ID, notification)
 
         startLocationTracking()
 
         return START_STICKY
+    }
+
+    /**
+     * 위치 권한이 있는지 확인
+     */
+    private fun hasLocationPermission(): Boolean {
+        val fineLocation = ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+
+        val coarseLocation = ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+
+        return fineLocation || coarseLocation
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -161,6 +189,22 @@ class LocationTrackingService : Service() {
          * Service 시작 Helper 함수
          */
         fun startService(context: Context) {
+            // 위치 권한 체크
+            val fineLocation = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+
+            val coarseLocation = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+
+            if (!fineLocation && !coarseLocation) {
+                Log.w(TAG, "위치 권한이 없어 서비스를 시작할 수 없습니다.")
+                return
+            }
+
             val intent = Intent(context, LocationTrackingService::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 context.startForegroundService(intent)

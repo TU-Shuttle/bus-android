@@ -30,7 +30,7 @@ import com.tukorea.bus.domain.model.Temp
 fun TempScreen(
     viewModel: TempViewModel = hiltViewModel()
 ) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier

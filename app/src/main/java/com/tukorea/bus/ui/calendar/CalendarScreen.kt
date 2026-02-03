@@ -3,6 +3,7 @@ package com.tukorea.bus.ui.calendar
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -31,12 +32,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tukorea.bus.R
+import com.tukorea.bus.domain.model.Reservation
 import com.tukorea.bus.ui.common.ConfirmDeleteDialog
 import com.tukorea.bus.ui.theme.*
 
 @Composable
 fun ReservationItem(
-    reservation: com.tukorea.bus.domain.model.Reservation,
+    reservation: Reservation,
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -525,7 +527,7 @@ fun CalendarScreen(
                                             },
                                         shape = RoundedCornerShape(12.dp),
                                         color = backgroundColor,
-                                        border = if (!isSelected) androidx.compose.foundation.BorderStroke(
+                                        border = if (!isSelected) BorderStroke(
                                             1.dp,
                                             Gray300
                                         ) else null,

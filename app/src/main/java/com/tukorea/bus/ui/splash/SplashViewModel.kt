@@ -21,8 +21,8 @@ class SplashViewModel @Inject constructor(
     private val errorMapper: ErrorMapper
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(SplashUiState())
-    val state: StateFlow<SplashUiState> = _state
+    private val _uiState = MutableStateFlow(SplashUiState())
+    val uiState: StateFlow<SplashUiState> = _uiState
 
     private companion object {
         private const val TAG = "SplashViewModel"
@@ -34,7 +34,7 @@ class SplashViewModel @Inject constructor(
             when (val result = initializeAppUseCase()) {
                 is Result.Success -> {
                     Log.d(TAG, "앱 초기화 성공")
-                    _state.value = _state.value.copy(
+                    _uiState.value = _uiState.value.copy(
                         isInitialized = true,
                         error = null
                     )
@@ -43,7 +43,7 @@ class SplashViewModel @Inject constructor(
                 is Result.Error -> {
                     val message = errorMapper.run { result.error.toUserMessage() }
                     Log.w(TAG, "앱 초기화 실패: 메시지=$message, 원본오류=${result.error}")
-                    _state.value = _state.value.copy(
+                    _uiState.value = _uiState.value.copy(
                         isInitialized = true,
                         error = message
                     )

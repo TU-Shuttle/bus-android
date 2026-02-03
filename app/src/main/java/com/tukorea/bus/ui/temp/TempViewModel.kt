@@ -18,8 +18,8 @@ class TempViewModel @Inject constructor(
     private val errorMapper: ErrorMapper
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(TempUiState())
-    val state: StateFlow<TempUiState> = _state
+    private val _uiState = MutableStateFlow(TempUiState())
+    val uiState: StateFlow<TempUiState> = _uiState
 
     private companion object {
         private const val TAG = "TempViewModel"
@@ -28,12 +28,12 @@ class TempViewModel @Inject constructor(
     fun loadTemps() {
         Log.d(TAG, "임시 리스트 불러오기 시작")
         viewModelScope.launch {
-            _state.value = TempUiState(isLoading = true, error = null)
+            _uiState.value = TempUiState(isLoading = true, error = null)
 
             when (val result = getTempListUseCase()) {
                 is Result.Success -> {
                     Log.d(TAG, "임시 리스트 불러오기 성공: 개수=${result.data.size}")
-                    _state.value = TempUiState(
+                    _uiState.value = TempUiState(
                         isLoading = false,
                         temps = result.data
                     )
@@ -42,7 +42,7 @@ class TempViewModel @Inject constructor(
                 is Result.Error -> {
                     val message = errorMapper.run { result.error.toUserMessage() }
                     Log.w(TAG, "임시 리스트 불러오기 실패: 메시지=$message, 원본오류=${result.error}")
-                    _state.value = TempUiState(
+                    _uiState.value = TempUiState(
                         isLoading = false,
                         error = message
                     )

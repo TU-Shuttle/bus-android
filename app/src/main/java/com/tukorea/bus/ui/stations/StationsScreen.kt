@@ -11,6 +11,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.tukorea.bus.domain.model.Station
 
 /**
  * 정류장 목록을 보여주는 화면
@@ -108,7 +109,7 @@ fun StationsScreen(
  * 정류장 정보를 표시하는 카드
  */
 @Composable
-fun StationCard(station: com.tukorea.bus.domain.model.Station) {
+fun StationCard(station: Station) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)

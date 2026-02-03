@@ -35,6 +35,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import com.tukorea.bus.domain.model.Bus
 import com.tukorea.bus.domain.model.RouteScheduleTemplate
 import com.tukorea.bus.ui.navigation.Screen
 import com.tukorea.bus.ui.theme.*
@@ -365,7 +366,7 @@ fun QuickRideScreen(
 
 @Composable
 fun BusCard(
-    bus: com.tukorea.bus.domain.model.Bus,
+    bus: Bus,
     currentLocation: String,
     destination: String,
     onClick: () -> Unit
@@ -739,7 +740,7 @@ fun TimeTableContent(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
             color = Gray50,
-            border = androidx.compose.foundation.BorderStroke(1.dp, Gray200)
+            border = BorderStroke(1.dp, Gray200)
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -858,7 +859,7 @@ fun TimeTableSection(
 @Composable
 private fun BusCardPreview() {
     BusTheme {
-        val mockBus = com.tukorea.bus.domain.model.Bus(
+        val mockBus = Bus(
             id = "1",
             route = "A노선",
             time = "09:00",
@@ -895,7 +896,7 @@ private fun TimeTableContentPreview() {
 @Composable
 private fun BusCardBLinePreview() {
     BusTheme {
-        val mockBus = com.tukorea.bus.domain.model.Bus(
+        val mockBus = Bus(
             id = "2",
             route = "B노선",
             time = "10:30",
@@ -1005,7 +1006,7 @@ private fun BusCardSkeletonPreview() {
 @Composable
 private fun BusCardCrowdedPreview() {
     BusTheme {
-        val mockBus = com.tukorea.bus.domain.model.Bus(
+        val mockBus = Bus(
             id = "3",
             route = "순환",
             time = "14:00",

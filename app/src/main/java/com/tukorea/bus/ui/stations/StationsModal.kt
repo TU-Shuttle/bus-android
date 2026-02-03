@@ -1,6 +1,7 @@
 package com.tukorea.bus.ui.stations
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -164,7 +165,7 @@ fun StationsModal(
                 colors = ButtonDefaults.outlinedButtonColors(
                     contentColor = PrimaryBlue
                 ),
-                border = androidx.compose.foundation.BorderStroke(2.dp, PrimaryBlue),
+                border = BorderStroke(2.dp, PrimaryBlue),
                 shape = RoundedCornerShape(14.dp)
             ) {
                 Icon(

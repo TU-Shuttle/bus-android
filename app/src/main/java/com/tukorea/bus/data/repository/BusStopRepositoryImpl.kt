@@ -5,11 +5,13 @@ import com.tukorea.bus.domain.model.BusStop
 import com.tukorea.bus.domain.repository.BusStopBusInfo
 import com.tukorea.bus.domain.repository.BusStopRepository
 import javax.inject.Inject
+import javax.inject.Singleton
 
 /**
  * BusStopRepository의 구현체
  * Data 레이어에서 BusStopDataSource를 사용하여 데이터를 제공합니다.
  */
+@Singleton
 class BusStopRepositoryImpl @Inject constructor(
     private val dataSource: BusStopDataSource
 ) : BusStopRepository {
