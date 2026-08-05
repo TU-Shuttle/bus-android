@@ -37,8 +37,9 @@
     <string name="bus_stop_close_cd">닫기</string>
     <string name="bus_stop_arrival_time">도착 예정: %1$s</string>
     <string name="bus_stop_destination">목적지: %1$s</string>
+    <string name="bus_stop_status_running">운행</string>
     <string name="bus_stop_status_waiting">대기</string>
-    <string name="bus_stop_status_departed">출발</string>
+    <string name="bus_stop_status_finished">운행 종료</string>
 
     <!-- 버스 탑승 확인 -->
     <string name="bus_ride_confirm_title">탑승하시겠습니까?</string>

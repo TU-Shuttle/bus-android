@@ -26,8 +26,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import com.tukorea.bus.R
 import com.tukorea.bus.domain.model.BusStop
-import com.tukorea.bus.domain.repository.BusStopBusInfo
-import com.tukorea.bus.domain.repository.BusStatus
+import com.tukorea.bus.domain.model.BusStopBusInfo
+import com.tukorea.bus.domain.model.BusStatus
 import com.tukorea.bus.ui.common.BottomModal
 import com.tukorea.bus.ui.common.ConfirmDeleteDialog
 import com.tukorea.bus.ui.home.ModalHeight
@@ -238,14 +238,16 @@ fun BusInfoCard(
 
     val statusColor = remember(bus.status) {
         when (bus.status) {
-            BusStatus.WAITING -> Pair(Green100, Green700)
-            BusStatus.DEPARTED -> Pair(Gray200, Gray600)
+            BusStatus.RUNNING -> Pair(Green100, Green700)
+            BusStatus.WAITING -> Pair(Orange50, Orange600)
+            BusStatus.FINISHED -> Pair(Gray200, Gray600)
         }
     }
 
     val statusText = when (bus.status) {
+        BusStatus.RUNNING -> stringResource(id = R.string.bus_stop_status_running)
         BusStatus.WAITING -> stringResource(id = R.string.bus_stop_status_waiting)
-        BusStatus.DEPARTED -> stringResource(id = R.string.bus_stop_status_departed)
+        BusStatus.FINISHED -> stringResource(id = R.string.bus_stop_status_finished)
     }
 
     Card(

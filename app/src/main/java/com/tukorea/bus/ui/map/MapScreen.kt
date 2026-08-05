@@ -52,7 +52,7 @@ import com.naver.maps.map.util.FusedLocationSource
 import com.tukorea.bus.domain.model.BusMarkerLocation
 import com.tukorea.bus.domain.model.BusStop
 import com.tukorea.bus.domain.model.MapLocation
-import com.tukorea.bus.domain.repository.BusStatus
+import com.tukorea.bus.domain.model.BusStatus
 import com.tukorea.bus.domain.util.LocationUtils
 import com.tukorea.bus.ui.common.BottomModal
 import com.tukorea.bus.ui.common.ImageUtils
@@ -187,7 +187,7 @@ fun MapScreen(
                     onNavigateTo(Screen.QuickRide.route)
                 },
                 onRideStart = { bus ->
-                    if (bus.status == BusStatus.DEPARTED) {
+                    if (bus.status == BusStatus.RUNNING) {
                         viewModel.closeBusStopModal()
                         onNavigateTo(Screen.Ride.route)
                     } else {
@@ -376,7 +376,6 @@ fun NaverMapView(
             }
         }
     }
-
 
     // 라이프사이클 관리
     DisposableEffect(lifecycleOwner) {

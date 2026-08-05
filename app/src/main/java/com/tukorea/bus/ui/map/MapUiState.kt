@@ -1,8 +1,8 @@
 package com.tukorea.bus.ui.map
 
 import com.tukorea.bus.domain.model.BusStop
+import com.tukorea.bus.domain.model.BusStopBusInfo
 import com.tukorea.bus.domain.model.MapLocation
-import com.tukorea.bus.domain.repository.BusStopBusInfo
 
 /**
  * 맵 화면의 UI 상태를 관리하는 데이터 클래스
@@ -25,4 +25,3 @@ data class MapUiState(
     val busStops: List<BusStop> = emptyList(),
     val busesForSelectedStop: List<BusStopBusInfo> = emptyList()
 )
-
