@@ -20,7 +20,7 @@ import com.tukorea.bus.R
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.tukorea.bus.domain.model.BusMarkerLocation
-import com.tukorea.bus.domain.repository.BusStatus
+import com.tukorea.bus.domain.model.BusStatus
 import com.tukorea.bus.ui.map.MapViewModel
 import com.tukorea.bus.ui.map.NaverMapView
 import com.tukorea.bus.ui.navigation.Screen
@@ -44,9 +44,17 @@ fun HomeScreen(
         )
     )
 
+    // 권한 요청 결과 처리
     LaunchedEffect(locationPermissionsState.allPermissionsGranted) {
         if (locationPermissionsState.allPermissionsGranted) {
             mapViewModel.onLocationPermissionGranted()
+        }
+    }
+
+    // 권한 요청 (처음 진입 시)
+    LaunchedEffect(Unit) {
+        if (!locationPermissionsState.allPermissionsGranted) {
+            locationPermissionsState.launchMultiplePermissionRequest()
         }
     }
 
@@ -142,7 +150,7 @@ fun HomeScreen(
                         onNavigateTo(Screen.QuickRide.route)
                     },
                     onRideStart = { bus ->
-                        if (bus.status == BusStatus.DEPARTED) {
+                        if (bus.status == BusStatus.FINISHED) {
                             mapViewModel.closeBusStopModal()
                             onNavigateTo(Screen.Ride.route)
                         } else {

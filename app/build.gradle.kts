@@ -25,6 +25,10 @@ fun getEnv(key: String): String {
     return envVars[key] ?: System.getenv(key) ?: ""
 }
 
+val baseUrl = getEnv("BASE_URL")
+    .ifBlank { "http://10.0.2.2:8080/" }
+    .let { if (it.endsWith('/')) it else "$it/" }
+
 android {
     namespace = "com.tukorea.bus"
     compileSdk = 36
@@ -41,8 +45,12 @@ android {
     }
 
     buildTypes {
+        debug {
+            buildConfigField("String", "BASE_URL", "\"$baseUrl\"")
+        }
         release {
             isMinifyEnabled = false
+            buildConfigField("String", "BASE_URL", "\"$baseUrl\"")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -58,6 +66,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
