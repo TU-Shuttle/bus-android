@@ -187,7 +187,7 @@ fun MapScreen(
                     onNavigateTo(Screen.QuickRide.route)
                 },
                 onRideStart = { bus ->
-                    if (bus.status == BusStatus.FINISHED) {
+                    if (bus.status == BusStatus.RUNNING) {
                         viewModel.closeBusStopModal()
                         onNavigateTo(Screen.Ride.route)
                     } else {
