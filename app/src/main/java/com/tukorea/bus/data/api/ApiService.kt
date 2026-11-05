@@ -1,25 +1,46 @@
 package com.tukorea.bus.data.api
 
-import com.tukorea.bus.data.model.DirectionsResponse
-import com.tukorea.bus.data.model.TempResponse
+import com.tukorea.bus.data.model.ApiEnvelope
+import com.tukorea.bus.data.model.CreateRideBody
+import com.tukorea.bus.data.model.LiveBusDto
+import com.tukorea.bus.data.model.RideDto
+import com.tukorea.bus.data.model.RideSummaryDto
+import com.tukorea.bus.data.model.TimetableDto
+import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.Header
+import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface ApiService {
-    @GET("/api/temps")
-    suspend fun getTemps(): TempResponse
 
-    /**
-     * 길찾기 API
-     * @param start 출발지 좌표 (형식: "경도,위도" 예: "127.1054327,37.3595958")
-     * @param end 도착지 좌표 (형식: "경도,위도" 예: "127.1080295,37.3612116")
-     * @param waypoints 경유지 좌표 (형식: "경도1,위도1:경도2,위도2" 최대 5개)
-     */
-    @GET("/api/bus/directions/{start}/{end}")
-    suspend fun getDirections(
-        @Path("start") start: String,
-        @Path("end") end: String,
-        @Query("waypoints") waypoints: String? = null
-    ): DirectionsResponse
+    @GET("api/bus/timetable")
+    suspend fun getTimetable(): ApiEnvelope<TimetableDto>
+
+    @GET("api/bus/locations")
+    suspend fun getLiveBuses(): List<LiveBusDto>
+
+    @GET("api/rides/mine")
+    suspend fun getMyRides(@Header(DEVICE_HEADER) deviceId: String): ApiEnvelope<List<RideDto>>
+
+    @POST("api/rides")
+    suspend fun reserveRide(
+        @Header(DEVICE_HEADER) deviceId: String,
+        @Body body: CreateRideBody,
+    ): ApiEnvelope<RideDto>
+
+    @DELETE("api/rides/{id}")
+    suspend fun cancelRide(
+        @Header(DEVICE_HEADER) deviceId: String,
+        @Path("id") rideId: Long,
+    ): ApiEnvelope<Any>
+
+    @GET("api/rides/summary")
+    suspend fun getRideSummary(@Query("date") serviceDate: String): ApiEnvelope<List<RideSummaryDto>>
+
+    private companion object {
+        const val DEVICE_HEADER = "X-Device-Id"
+    }
 }

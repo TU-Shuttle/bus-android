@@ -1,6 +1,7 @@
 package com.tukorea.bus.ui.theme
 
 import android.app.Activity
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
@@ -126,9 +127,7 @@ private val BusShapes =
 
 @Composable
 fun BusTheme(
-    // 아직 새 디자인으로 옮기지 않은 화면(캘린더/빠른 탑승/정류장/탑승 등)이 색을 직접 지정하고 있어
-    // 다크 모드는 기본으로 끈다. 모든 화면이 MaterialTheme 색을 쓰게 되면 isSystemInDarkTheme()로 바꾼다.
-    darkTheme: Boolean = false,
+    darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
