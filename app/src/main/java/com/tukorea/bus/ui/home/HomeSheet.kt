@@ -12,36 +12,43 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.tukorea.bus.R
-import com.tukorea.bus.domain.model.Departure
 import com.tukorea.bus.domain.model.DayType
+import com.tukorea.bus.domain.model.Departure
+import com.tukorea.bus.domain.model.RideIntent
 import com.tukorea.bus.domain.model.ShuttleDirection
 import com.tukorea.bus.domain.model.ShuttleStop
 import com.tukorea.bus.domain.model.UpcomingDepartures
 import com.tukorea.bus.ui.common.BusButton
 import com.tukorea.bus.ui.common.BusButtonStyle
 import com.tukorea.bus.ui.common.DirectionPicker
+import com.tukorea.bus.ui.common.RowDivider
 import com.tukorea.bus.ui.common.StatusDot
 import com.tukorea.bus.ui.common.boardingRes
 import com.tukorea.bus.ui.common.formatMinute
 import com.tukorea.bus.ui.common.nameRes
 import com.tukorea.bus.ui.theme.BusTheme
 import com.tukorea.bus.ui.theme.busColors
+
+private val Inset = 24.dp
 
 data class HomeSheetCallbacks(
     val onSelectDirection: (ShuttleDirection) -> Unit,
@@ -61,67 +68,71 @@ fun HomeSheet(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         color = MaterialTheme.colorScheme.surface,
-        shadowElevation = 16.dp,
+        shadowElevation = 8.dp,
     ) {
-        Column(modifier = Modifier.padding(top = 24.dp, bottom = 20.dp)) {
+        Column(modifier = Modifier.padding(top = 20.dp, bottom = 16.dp)) {
             when {
                 state.isLoading -> LoadingBlock()
                 state.loadFailed -> NoTimetableBlock(onRetry = callbacks.onRetry)
                 else -> ScheduleBlock(state, callbacks)
             }
-            HorizontalDivider(
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
-                color = MaterialTheme.colorScheme.outlineVariant,
-            )
-            LiveRow(state = state, modifier = Modifier.padding(horizontal = 24.dp))
+            RowDivider(modifier = Modifier.padding(horizontal = Inset, vertical = 16.dp))
+            LiveRow(state = state, modifier = Modifier.padding(horizontal = Inset))
         }
     }
 }
 
 @Composable
 private fun ScheduleBlock(state: HomeUiState, callbacks: HomeSheetCallbacks) {
-    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(
-                modifier = Modifier.padding(horizontal = 24.dp),
-                text = stringResource(R.string.home_where_to),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
+    Column {
+        Text(
+            modifier = Modifier.padding(horizontal = Inset),
+            text = stringResource(R.string.home_where_to),
+            style = MaterialTheme.typography.titleLarge,
+        )
+        if (state.directions.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(12.dp))
+            DirectionPicker(
+                directions = state.directions,
+                selected = state.selectedDirection,
+                onSelect = callbacks.onSelectDirection,
+                contentPadding = PaddingValues(horizontal = Inset),
             )
-            if (state.directions.isNotEmpty()) {
-                DirectionPicker(
-                    directions = state.directions,
-                    selected = state.selectedDirection,
-                    onSelect = callbacks.onSelectDirection,
-                    contentPadding = PaddingValues(horizontal = 24.dp),
-                )
-            }
         }
-
         state.outOfPeriod?.let { period ->
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
-                modifier = Modifier.padding(horizontal = 24.dp),
+                modifier = Modifier.padding(horizontal = Inset),
                 text = stringResource(R.string.home_out_of_period, period),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.busColors.warning,
             )
         }
-
+        Spacer(modifier = Modifier.height(20.dp))
         AnimatedContent(
-            modifier = Modifier.padding(horizontal = 24.dp),
+            modifier = Modifier.padding(horizontal = Inset),
             targetState = state.selectedDirection to state.upcoming,
             transitionSpec = { fadeIn() togetherWith fadeOut() },
             label = "upcoming",
         ) { (direction, upcoming) ->
             when (upcoming) {
-                null, UpcomingDepartures.NoService -> NoServiceBlock()
-                is UpcomingDepartures.Finished -> FinishedBlock(upcoming.firstDeparture, callbacks.onOpenTimetable)
-                is UpcomingDepartures.Scheduled -> UpcomingBlock(
-                    origin = direction?.origin,
-                    upcoming = upcoming,
-                    state = state,
-                    callbacks = callbacks,
+                null, UpcomingDepartures.NoService -> MessageBlock(
+                    title = stringResource(R.string.home_no_service_title),
+                    body = stringResource(R.string.home_no_service_body),
                 )
+                is UpcomingDepartures.Finished -> Column {
+                    MessageBlock(
+                        title = stringResource(R.string.home_finished_title),
+                        body = stringResource(R.string.home_finished_first, formatMinute(upcoming.firstDeparture.minute)),
+                    )
+                    Spacer(modifier = Modifier.height(20.dp))
+                    BusButton(
+                        text = stringResource(R.string.home_view_timetable),
+                        onClick = callbacks.onOpenTimetable,
+                        style = BusButtonStyle.Secondary,
+                    )
+                }
+                is UpcomingDepartures.Scheduled -> UpcomingBlock(direction?.origin, upcoming, state, callbacks)
             }
         }
     }
@@ -136,209 +147,160 @@ private fun UpcomingBlock(
 ) {
     val next = upcoming.next.firstOrNull()
     val bus = MaterialTheme.busColors
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column {
+        Text(
+            text = stringResource(
+                if (upcoming.onDemandUntil != null) R.string.home_on_demand_now else R.string.home_next_shuttle,
+            ),
+            style = MaterialTheme.typography.labelLarge,
+            color = bus.textSecondary,
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        if (next != null) {
+            Countdown(minutesLeft = next.minute - state.nowMinute, departMinute = next.minute)
+        } else {
+            Text(text = stringResource(R.string.home_on_demand_title), style = MaterialTheme.typography.displaySmall)
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+        origin?.let {
             Text(
-                text = stringResource(
-                    if (upcoming.onDemandUntil != null) R.string.home_on_demand_now else R.string.home_next_shuttle,
-                ),
-                style = MaterialTheme.typography.labelLarge,
-                color = bus.textSecondary,
+                text = stringResource(R.string.home_board_at, stringResource(it.boardingRes())),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
             )
-            if (next != null) {
-                Countdown(minutesLeft = next.minute - state.nowMinute, departMinute = next.minute)
-            } else {
-                Text(
-                    text = stringResource(R.string.home_on_demand_title),
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.ExtraBold,
-                )
+        }
+        val secondary = buildList {
+            if (next == null && upcoming.onDemandUntil != null) {
+                add(stringResource(R.string.home_on_demand_until, formatMinute(upcoming.onDemandUntil)))
             }
-            val details = buildList {
-                if (next == null && upcoming.onDemandUntil != null) {
-                    add(stringResource(R.string.home_on_demand_until, formatMinute(upcoming.onDemandUntil)))
-                }
-                origin?.let { add(stringResource(R.string.home_board_at, stringResource(it.boardingRes()))) }
-                if (next != null && state.nextRiders > 0) {
-                    add(stringResource(R.string.home_riders_planned, state.nextRiders))
-                }
-            }
-            Text(
-                text = details.joinToString(" · "),
-                style = MaterialTheme.typography.bodyMedium,
-                color = bus.textSecondary,
-            )
+            if (next != null && state.nextRiders > 0) add(stringResource(R.string.home_riders_planned, state.nextRiders))
             val later = upcoming.next.drop(1)
             if (later.isNotEmpty()) {
-                Text(
-                    text = stringResource(R.string.home_later, later.joinToString("  ") { formatMinute(it.minute) }),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
+                add(stringResource(R.string.home_later, later.joinToString(" · ") { formatMinute(it.minute) }))
             }
-            next?.note?.let { note ->
-                Text(text = note, style = MaterialTheme.typography.bodySmall, color = bus.warning)
-            }
+            next?.note?.let(::add)
+        }
+        if (secondary.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = secondary.joinToString(" · "),
+                style = MaterialTheme.typography.bodyMedium,
+                color = bus.textSecondary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
 
         if (next != null) {
+            Spacer(modifier = Modifier.height(20.dp))
             val reserved = state.reservedForNext
             if (reserved == null) {
                 BusButton(text = stringResource(R.string.home_reserve), onClick = callbacks.onReserve)
             } else {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = stringResource(R.string.home_reserved, stringResource(reserved.dropOff.nameRes())),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = bus.success,
-                    )
-                    BusButton(
-                        text = stringResource(R.string.home_cancel_reserve),
-                        onClick = callbacks.onCancelReserve,
-                        style = BusButtonStyle.Secondary,
-                    )
-                }
+                ReservedRow(reserved = reserved, onCancel = callbacks.onCancelReserve)
+            }
+        }
+    }
+}
+
+/** 탑승 예정을 남긴 상태. CTA와 같은 56dp라 시트 높이가 바뀌지 않는다. */
+@Composable
+private fun ReservedRow(reserved: RideIntent, onCancel: () -> Unit) {
+    val bus = MaterialTheme.busColors
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp),
+        shape = RoundedCornerShape(12.dp),
+        color = bus.successContainer,
+    ) {
+        Row(modifier = Modifier.padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Filled.CheckCircle,
+                contentDescription = null,
+                tint = bus.success,
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                modifier = Modifier.weight(1f),
+                text = stringResource(R.string.home_reserved, stringResource(reserved.dropOff.nameRes())),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            TextButton(onClick = onCancel) {
+                Text(
+                    text = stringResource(R.string.my_rides_cancel),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = bus.textSecondary,
+                )
             }
         }
     }
 }
 
 /**
- * 1시간 안이면 "8 분 후 ……… 14:10 출발", 그보다 멀면 "10:00 출발 ……… 7시간 1분 후".
+ * 1시간 안이면 "8 분 후 …… 14:10 출발", 그보다 멀면 "10:00 출발 …… 7시간 후".
+ * 큰 숫자와 단위는 같은 기준선에 둔다.
  */
 @Composable
 private fun Countdown(minutesLeft: Int, departMinute: Int) {
-    if (minutesLeft >= 60) {
-        FarCountdown(minutesLeft = minutesLeft, departMinute = departMinute)
-        return
-    }
-    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
-        if (minutesLeft <= 1) {
-            Text(
+    val far = minutesLeft >= 60
+    val soon = minutesLeft <= 1
+    Row(modifier = Modifier.fillMaxWidth()) {
+        when {
+            soon -> Text(
+                modifier = Modifier.alignByBaseline(),
                 text = stringResource(R.string.home_departing_now),
                 style = MaterialTheme.typography.displaySmall,
-                fontWeight = FontWeight.ExtraBold,
             )
-        } else {
-            Text(
-                text = stringResource(R.string.home_minutes_left_value, minutesLeft),
-                fontSize = 56.sp,
-                lineHeight = 56.sp,
-                fontWeight = FontWeight.ExtraBold,
-                style = MaterialTheme.typography.displayLarge,
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                modifier = Modifier.padding(bottom = 8.dp),
-                text = stringResource(R.string.home_minutes_left_unit),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-            )
+            else -> {
+                Text(
+                    modifier = Modifier.alignByBaseline(),
+                    text = if (far) formatMinute(departMinute) else stringResource(R.string.home_minutes_left_value, minutesLeft),
+                    style = MaterialTheme.typography.displayLarge,
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    modifier = Modifier.alignByBaseline(),
+                    text = stringResource(if (far) R.string.home_depart_unit else R.string.home_minutes_left_unit),
+                    style = MaterialTheme.typography.titleLarge,
+                )
+            }
         }
         Spacer(modifier = Modifier.weight(1f))
         Text(
-            modifier = Modifier.padding(bottom = 8.dp),
-            text = stringResource(R.string.home_depart_at, formatMinute(departMinute)),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.busColors.textSecondary,
-        )
-    }
-}
-
-@Composable
-private fun FarCountdown(minutesLeft: Int, departMinute: Int) {
-    val hours = minutesLeft / 60
-    val minutes = minutesLeft % 60
-    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
-        Text(
-            text = formatMinute(departMinute),
-            fontSize = 56.sp,
-            lineHeight = 56.sp,
-            fontWeight = FontWeight.ExtraBold,
-            style = MaterialTheme.typography.displayLarge,
-        )
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(
-            modifier = Modifier.padding(bottom = 8.dp),
-            text = stringResource(R.string.home_depart_unit),
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-        )
-        Spacer(modifier = Modifier.weight(1f))
-        Text(
-            modifier = Modifier.padding(bottom = 8.dp),
-            text = if (minutes == 0) {
-                stringResource(R.string.home_in_hours, hours)
+            modifier = Modifier.alignByBaseline(),
+            text = if (far) {
+                stringResource(R.string.home_in_hours, (minutesLeft + 30) / 60)
             } else {
-                stringResource(R.string.home_in_hours_minutes, hours, minutes)
+                stringResource(R.string.home_depart_at, formatMinute(departMinute))
             },
             style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.busColors.textSecondary,
+            maxLines = 1,
+            softWrap = false,
         )
     }
 }
 
 @Composable
-private fun FinishedBlock(first: Departure, onOpenTimetable: () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = stringResource(R.string.home_finished_title),
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-            )
-            Text(
-                text = stringResource(R.string.home_finished_first, formatMinute(first.minute)),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.busColors.textSecondary,
-            )
-        }
-        BusButton(
-            text = stringResource(R.string.home_view_timetable),
-            onClick = onOpenTimetable,
-            style = BusButtonStyle.Secondary,
-        )
-    }
-}
-
-@Composable
-private fun NoServiceBlock() {
+private fun MessageBlock(title: String, body: String) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            text = stringResource(R.string.home_no_service_title),
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-        )
-        Text(
-            text = stringResource(R.string.home_no_service_body),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.busColors.textSecondary,
-        )
+        Text(text = title, style = MaterialTheme.typography.headlineSmall)
+        Text(text = body, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.busColors.textSecondary)
     }
 }
 
 @Composable
 private fun NoTimetableBlock(onRetry: () -> Unit) {
-    Column(
-        modifier = Modifier.padding(horizontal = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = stringResource(R.string.home_no_timetable_title),
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-            )
-            Text(
-                text = stringResource(R.string.home_no_timetable_body),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.busColors.textSecondary,
-            )
-        }
+    Column(modifier = Modifier.padding(horizontal = Inset)) {
+        MessageBlock(
+            title = stringResource(R.string.home_no_timetable_title),
+            body = stringResource(R.string.home_no_timetable_body),
+        )
+        Spacer(modifier = Modifier.height(20.dp))
         BusButton(text = stringResource(R.string.action_retry), onClick = onRetry)
     }
 }
@@ -348,7 +310,7 @@ private fun LoadingBlock() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(120.dp),
+            .height(160.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -374,7 +336,7 @@ private fun LiveRow(state: HomeUiState, modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         StatusDot(color = if (running > 0) bus.success else bus.textTertiary, pulsing = running > 0)
-        Text(text = text, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+        Text(text = text, style = MaterialTheme.typography.bodyMedium)
     }
 }
 

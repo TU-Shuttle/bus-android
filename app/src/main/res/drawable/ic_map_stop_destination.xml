@@ -1,17 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 도착 정류장: 검정 사각형(우버식 목적지 표시) -->
+<!-- 도착 정류장: 흰 원 + 굵은 검정 테두리 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="20dp"
-    android:height="20dp"
-    android:viewportWidth="20"
-    android:viewportHeight="20">
-    <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M0,0h20v20h-20z" />
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
     <path
         android:fillColor="#FF000000"
-        android:pathData="M3,3h14v14h-14z" />
+        android:pathData="M12,0a12,12 0,1 1,0 24a12,12 0,1 1,0 -24z" />
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M8,8h4v4h-4z" />
+        android:pathData="M12,5.5a6.5,6.5 0,1 1,0 13a6.5,6.5 0,1 1,0 -13z" />
 </vector>

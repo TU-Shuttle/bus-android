@@ -2,7 +2,6 @@ package com.tukorea.bus.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.tukorea.bus.R
 import com.tukorea.bus.domain.model.LiveBus
 import com.tukorea.bus.domain.model.RideIntent
 import com.tukorea.bus.domain.model.RideSummary
@@ -114,10 +113,8 @@ class HomeViewModel @Inject constructor(
     fun confirmRide() {
         viewModelScope.launch {
             when (val result = rideReservation.submit() ?: return@launch) {
-                is Result.Success -> {
-                    showMessage(R.string.ride_reserved_message)
-                    loadSummary()
-                }
+                // 성공은 시트의 '탈 예정이에요' 줄이 바로 보여 주므로 따로 알리지 않는다.
+                is Result.Success -> loadSummary()
                 is Result.Error -> showMessage(result.error.messageRes())
             }
         }
@@ -127,10 +124,7 @@ class HomeViewModel @Inject constructor(
         val ride = uiState.value.reservedForNext ?: return
         viewModelScope.launch {
             when (val result = cancelRide(ride.id)) {
-                is Result.Success -> {
-                    showMessage(R.string.ride_cancelled_message)
-                    loadSummary()
-                }
+                is Result.Success -> loadSummary()
                 is Result.Error -> showMessage(result.error.messageRes())
             }
         }

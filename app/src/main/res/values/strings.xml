@@ -37,16 +37,15 @@
     <string name="home_depart_at">%1$s 출발</string>
     <string name="home_depart_unit">출발</string>
     <string name="home_in_hours">%1$d시간 후</string>
-    <string name="home_in_hours_minutes">%1$d시간 %2$d분 후</string>
     <string name="home_board_at">%1$s에서 타요</string>
     <string name="home_riders_planned">%1$d명 탈 예정</string>
-    <string name="home_later">이후 %1$s</string>
+    <string name="home_later">다음 %1$s</string>
     <string name="home_finished_title">오늘 운행이 끝났어요</string>
     <string name="home_finished_first">첫차는 %1$s이에요</string>
     <string name="home_no_service_title">오늘은 운행하지 않아요</string>
     <string name="home_no_service_body">셔틀은 평일과 토요일에만 다녀요.</string>
     <string name="home_reserve">이 셔틀 탈게요</string>
-    <string name="home_reserved">탈 예정이에요 · %1$s 하차</string>
+    <string name="home_reserved">%1$s까지 탈 예정이에요</string>
     <string name="home_cancel_reserve">탑승 예정 취소</string>
     <string name="home_view_timetable">시간표 보기</string>
     <string name="home_out_of_period">시간표 적용 기간(%1$s)이 아니에요. 방학 중엔 운행이 다를 수 있어요.</string>
@@ -61,7 +60,7 @@
     <!-- 탑승 예정 시트 -->
     <string name="ride_sheet_title">어디서 내리세요?</string>
     <string name="ride_sheet_subtitle">%1$s %2$s 출발 · %3$s</string>
-    <string name="ride_sheet_help">좌석 예약은 아니에요. 몇 명이 어디서 내리는지 미리 알려 운행에 참고해요.</string>
+    <string name="ride_sheet_help">좌석 예약이 아니에요. 몇 명이 어디서 내리는지 미리 알려 운행에 참고해요.</string>
     <string name="ride_sheet_confirm">탈게요</string>
     <string name="ride_reserved_message">탑승 예정을 남겼어요</string>
     <string name="ride_cancelled_message">탑승 예정을 취소했어요</string>
@@ -72,12 +71,11 @@
     <string name="timetable_on_demand">%1$s – %2$s 수시운행</string>
     <string name="timetable_hour">%1$d시</string>
     <string name="timetable_notes">참고</string>
-    <string name="timetable_tap_hint">오늘 시간을 누르면 탑승 예정을 남길 수 있어요.</string>
     <string name="timetable_empty">이 요일에는 운행하지 않아요</string>
 
     <!-- 내 탑승 -->
     <string name="my_rides_title">내 탑승</string>
-    <string name="my_rides_subtitle">탈 셔틀을 알려주면 기사님이 인원을 미리 알 수 있어요.</string>
+    <string name="my_rides_subtitle">타실 셔틀을 남기면 기사님이 미리 알 수 있어요.</string>
     <string name="my_rides_empty_title">아직 탑승 예정이 없어요</string>
     <string name="my_rides_empty_body">홈이나 시간표에서 \'이 셔틀 탈게요\'를 눌러 보세요.</string>
     <string name="my_rides_drop_off">%1$s 하차</string>
@@ -114,4 +112,10 @@
 
     <!-- 접근성 -->
     <string name="a11y_bus_marker">셔틀 버스</string>
+    <string name="ride_sheet_single_title">%1$s 셔틀 탈게요</string>
+    <string name="ride_sheet_meta">%1$s · %2$s</string>
+    <string name="my_rides_meta">%1$s · %2$s 하차</string>
+    <string name="a11y_locate_me">내 위치로 이동</string>
+    <string name="a11y_reserved">탑승 예정 있음</string>
+    <string name="a11y_has_note">안내 있음</string>
 </resources>

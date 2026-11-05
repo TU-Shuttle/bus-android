@@ -4,6 +4,18 @@ import android.app.Activity
 import android.content.Context
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.MyLocation
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -93,8 +105,9 @@ fun ShuttleMap(
         }
     }
 
+    Box(modifier = modifier) {
     AndroidView(
-        modifier = modifier,
+        modifier = Modifier.fillMaxSize(),
         factory = {
             mapView.apply {
                 getMapAsync { map ->
@@ -110,6 +123,16 @@ fun ShuttleMap(
         },
     )
 
+        if (showMyLocation) {
+            LocateMeButton(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 16.dp, bottom = bottomPadding + 16.dp),
+                onClick = { naverMap?.locationTrackingMode = LocationTrackingMode.Follow },
+            )
+        }
+    }
+
     LaunchedEffect(naverMap, isDark) {
         val map = naverMap ?: return@LaunchedEffect
         map.mapType = if (isDark) NaverMap.MapType.Navi else NaverMap.MapType.Basic
@@ -122,7 +145,6 @@ fun ShuttleMap(
         if (showMyLocation) {
             map.locationSource = FusedLocationSource(activity, LOCATION_PERMISSION_REQUEST)
             map.locationTrackingMode = LocationTrackingMode.NoFollow
-            map.uiSettings.isLocationButtonEnabled = true
         }
     }
 
@@ -176,10 +198,34 @@ fun ShuttleMap(
 
 private val ShuttleStop.latLng: LatLng get() = LatLng(latitude, longitude)
 
+/** 지도 위 내 위치·버스보다 위에 그려 정류장이 가려지지 않게 한다. */
+private const val STOP_GLOBAL_Z = 300_001
+
+@Composable
+private fun LocateMeButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier.size(48.dp),
+        onClick = onClick,
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 4.dp,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = Icons.Outlined.MyLocation,
+                contentDescription = stringResource(R.string.a11y_locate_me),
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(24.dp),
+            )
+        }
+    }
+}
+
 private fun stopMarker(stop: ShuttleStop, image: OverlayImage, caption: String?, isDark: Boolean): Marker =
     Marker().apply {
         position = stop.latLng
         icon = image
+        globalZIndex = STOP_GLOBAL_Z
         captionText = caption.orEmpty()
         captionTextSize = 14f
         captionColor = (if (isDark) White else Black).toArgb()

@@ -1,6 +1,13 @@
 package com.tukorea.bus.ui.timetable
 
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.CircleShape
+import com.tukorea.bus.ui.common.RowDivider
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Arrangement
@@ -50,6 +57,7 @@ import com.tukorea.bus.ui.ride.RideSheet
 import com.tukorea.bus.ui.theme.busColors
 
 private val DAY_TYPES = listOf(DayType.WEEKDAY, DayType.SATURDAY)
+private val Inset = 24.dp
 
 @Composable
 fun TimetableRoute(viewModel: TimetableViewModel = hiltViewModel()) {
@@ -85,6 +93,7 @@ fun TimetableRoute(viewModel: TimetableViewModel = hiltViewModel()) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TimetableScreen(
     state: TimetableUiState,
@@ -94,13 +103,14 @@ fun TimetableScreen(
     onRetry: () -> Unit,
 ) {
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(top = 24.dp, bottom = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding(),
+        contentPadding = PaddingValues(bottom = 32.dp),
     ) {
         item {
             ScreenTitle(
-                modifier = Modifier.padding(horizontal = 24.dp),
+                modifier = Modifier.padding(start = Inset, end = Inset, top = 24.dp, bottom = 20.dp),
                 title = stringResource(R.string.timetable_title),
                 subtitle = when {
                     state.title.isBlank() -> null
@@ -109,13 +119,30 @@ fun TimetableScreen(
                 },
             )
         }
-        item {
-            SegmentedControl(
-                modifier = Modifier.padding(horizontal = 24.dp),
-                options = DAY_TYPES.map { stringResource(it.labelRes()) },
-                selectedIndex = DAY_TYPES.indexOf(state.selectedDayType),
-                onSelect = { onSelectDayType(DAY_TYPES[it]) },
-            )
+        // 요일·노선 선택은 스크롤해도 위에 붙어 있다.
+        stickyHeader {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(bottom = 16.dp),
+            ) {
+                SegmentedControl(
+                    modifier = Modifier.padding(horizontal = Inset),
+                    options = DAY_TYPES.map { stringResource(it.labelRes()) },
+                    selectedIndex = DAY_TYPES.indexOf(state.selectedDayType),
+                    onSelect = { onSelectDayType(DAY_TYPES[it]) },
+                )
+                if (state.directions.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    DirectionPicker(
+                        directions = state.directions,
+                        selected = state.selectedDirection,
+                        onSelect = onSelectDirection,
+                        contentPadding = PaddingValues(horizontal = Inset),
+                    )
+                }
+            }
         }
 
         when {
@@ -131,127 +158,151 @@ fun TimetableScreen(
                 EmptyState(title = stringResource(R.string.timetable_empty), body = "")
             }
             else -> {
-                item {
-                    DirectionPicker(
-                        directions = state.directions,
-                        selected = state.selectedDirection,
-                        onSelect = onSelectDirection,
-                        contentPadding = PaddingValues(horizontal = 24.dp),
-                        unselectedColor = MaterialTheme.colorScheme.surface,
-                    )
-                }
-                items(state.onDemand, key = { "od-${it.minute}" }) { OnDemandCard(it) }
-                if (state.isToday && state.hours.isNotEmpty()) {
-                    item {
-                        Text(
-                            modifier = Modifier.padding(horizontal = 24.dp),
-                            text = stringResource(R.string.timetable_tap_hint),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.busColors.textTertiary,
-                        )
-                    }
-                }
+                items(state.onDemand, key = { "od-${it.minute}" }) { OnDemandRow(it) }
                 items(state.hours, key = { "h-${it.hour}" }) { row ->
                     HourRowItem(row = row, isToday = state.isToday, onTap = onTapDeparture)
                 }
                 if (state.notes.isNotEmpty()) {
-                    item { SectionLabel(modifier = Modifier.padding(horizontal = 24.dp), text = stringResource(R.string.timetable_notes)) }
-                    items(state.notes, key = { "n-${it.minute}" }) { dep ->
-                        Text(
-                            modifier = Modifier.padding(horizontal = 24.dp),
-                            text = "${formatMinute(dep.minute)}  ${dep.note}",
-                            style = MaterialTheme.typography.bodyMedium,
+                    item {
+                        SectionLabel(
+                            modifier = Modifier.padding(horizontal = Inset),
+                            text = stringResource(R.string.timetable_notes),
                         )
                     }
+                    items(state.notes, key = { "n-${it.minute}" }) { dep -> NoteRow(dep) }
                 }
             }
         }
     }
 }
 
+/** "08:40–10:00 수시운행" 한 줄 + 안내문. */
 @Composable
-private fun OnDemandCard(departure: Departure) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-    ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = stringResource(
-                    R.string.timetable_on_demand,
-                    formatMinute(departure.minute),
-                    formatMinute(departure.endMinute ?: departure.minute),
-                ),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-            )
+private fun OnDemandRow(departure: Departure) {
+    val bus = MaterialTheme.busColors
+    Column(modifier = Modifier.padding(horizontal = Inset)) {
+        Column(modifier = Modifier.padding(vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "${formatMinute(departure.minute)}–${formatMinute(departure.endMinute ?: departure.minute)}",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = stringResource(R.string.home_on_demand_title),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = bus.textSecondary,
+                )
+            }
             val note = departure.note?.takeUnless { it == stringResource(R.string.home_on_demand_title) }
             if (note != null) {
-                Text(text = note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.busColors.textSecondary)
+                Text(text = note, style = MaterialTheme.typography.bodySmall, color = bus.textSecondary)
             }
         }
+        RowDivider()
     }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun HourRowItem(row: HourRow, isToday: Boolean, onTap: (Departure) -> Unit) {
+    val allPast = isToday && row.cells.all { it.isPast }
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp),
+            .padding(start = Inset, end = Inset, top = 24.dp),
         verticalAlignment = Alignment.Top,
     ) {
         Text(
             modifier = Modifier
                 .width(48.dp)
-                .padding(top = 8.dp),
+                .padding(top = 10.dp),
             text = stringResource(R.string.timetable_hour, row.hour),
             style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = if (isToday && row.cells.all { it.isPast }) MaterialTheme.busColors.textTertiary else MaterialTheme.colorScheme.onBackground,
+            color = if (allPast) MaterialTheme.busColors.textTertiary else MaterialTheme.colorScheme.onBackground,
         )
         FlowRow(
             modifier = Modifier.weight(1f),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            row.cells.forEach { cell -> TimeChip(cell = cell, enabled = isToday && cell.isReservable, onClick = { onTap(cell.departure) }) }
+            row.cells.forEach { cell ->
+                TimeChip(cell = cell, enabled = isToday && cell.isReservable, onClick = { onTap(cell.departure) })
+            }
+        }
+    }
+}
+
+/**
+ * 고정 크기 시각 칩. 다음 출발=검정 채움, 지난 시각=흐린 글자, 예약함=초록 점, 안내 있음=주황 점.
+ */
+@Composable
+private fun TimeChip(cell: TimeCell, enabled: Boolean, onClick: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    val bus = MaterialTheme.busColors
+    val time = formatMinute(cell.departure.minute)
+    val reservedLabel = stringResource(R.string.a11y_reserved)
+    val noteLabel = stringResource(R.string.a11y_has_note)
+    val (container, content) = when {
+        cell.isNext -> scheme.primary to scheme.onPrimary
+        cell.isPast -> scheme.background to bus.textTertiary
+        else -> scheme.surfaceVariant to scheme.onSurface
+    }
+    Surface(
+        modifier = Modifier
+            .size(width = 56.dp, height = 40.dp)
+            .semantics {
+                contentDescription = listOfNotNull(
+                    time,
+                    reservedLabel.takeIf { cell.isReserved },
+                    noteLabel.takeIf { cell.departure.note != null },
+                ).joinToString(", ")
+            },
+        onClick = onClick,
+        enabled = enabled,
+        shape = RoundedCornerShape(12.dp),
+        color = container,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(text = time, style = MaterialTheme.typography.labelLarge, color = content)
+            val dot = when {
+                cell.isReserved -> bus.success
+                cell.departure.note != null -> bus.warning
+                else -> null
+            }
+            if (dot != null) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(5.dp)
+                        .size(6.dp)
+                        .background(dot, CircleShape),
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun TimeChip(cell: TimeCell, enabled: Boolean, onClick: () -> Unit) {
-    val scheme = MaterialTheme.colorScheme
-    val bus = MaterialTheme.busColors
-    val (container, content) = when {
-        cell.isNext -> scheme.primary to scheme.onPrimary
-        cell.isPast -> scheme.background to bus.textTertiary
-        else -> scheme.surface to scheme.onSurface
-    }
-    val time = formatMinute(cell.departure.minute)
-    Surface(
-        modifier = Modifier.semantics { contentDescription = time },
-        onClick = onClick,
-        enabled = enabled,
-        shape = RoundedCornerShape(10.dp),
-        color = container,
-        border = when {
-            cell.isReserved -> BorderStroke(2.dp, bus.success)
-            cell.isNext || cell.isPast -> null
-            else -> BorderStroke(1.dp, scheme.outlineVariant)
-        },
+private fun NoteRow(departure: Departure) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Inset, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
+        Box(
+            modifier = Modifier
+                .size(6.dp)
+                .background(MaterialTheme.busColors.warning, CircleShape),
+        )
+        Spacer(modifier = Modifier.width(10.dp))
+        Text(text = formatMinute(departure.minute), style = MaterialTheme.typography.titleSmall)
+        Spacer(modifier = Modifier.width(8.dp))
         Text(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-            text = time + if (cell.departure.note != null) "*" else "",
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = if (cell.isNext) FontWeight.Bold else FontWeight.Medium,
-            color = content,
+            text = departure.note.orEmpty(),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.busColors.textSecondary,
         )
     }
 }

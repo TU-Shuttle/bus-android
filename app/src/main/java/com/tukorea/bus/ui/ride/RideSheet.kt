@@ -1,21 +1,21 @@
 package com.tukorea.bus.ui.ride
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -23,16 +23,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.tukorea.bus.R
 import com.tukorea.bus.domain.model.ShuttleStop
 import com.tukorea.bus.ui.common.BusButton
+import com.tukorea.bus.ui.common.RowDivider
 import com.tukorea.bus.ui.common.formatMinute
 import com.tukorea.bus.ui.common.label
 import com.tukorea.bus.ui.common.nameRes
 import com.tukorea.bus.ui.theme.busColors
 
+/**
+ * 탑승 예정 확인 시트. 내릴 곳이 하나면 확인만, 여러 곳이면 고르게 한다.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RideSheet(
@@ -42,6 +45,8 @@ fun RideSheet(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val time = formatMinute(state.target.departMinute)
+    val single = state.options.size == 1
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -53,29 +58,31 @@ fun RideSheet(
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 16.dp)
                 .navigationBarsPadding(),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = stringResource(R.string.ride_sheet_title),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = stringResource(
-                        R.string.ride_sheet_subtitle,
-                        dateLabel,
-                        formatMinute(state.target.departMinute),
-                        state.target.direction.label(),
-                    ),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.busColors.textSecondary,
-                )
-            }
+            Text(
+                text = if (single) {
+                    stringResource(R.string.ride_sheet_single_title, time)
+                } else {
+                    stringResource(R.string.ride_sheet_title)
+                },
+                style = MaterialTheme.typography.headlineSmall,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = if (single) {
+                    stringResource(R.string.ride_sheet_meta, state.target.direction.label(), dateLabel)
+                } else {
+                    stringResource(R.string.ride_sheet_subtitle, dateLabel, time, state.target.direction.label())
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.busColors.textSecondary,
+            )
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                state.options.forEach { stop ->
-                    DropOffOption(
+            if (!single) {
+                Spacer(modifier = Modifier.height(12.dp))
+                state.options.forEachIndexed { index, stop ->
+                    if (index > 0) RowDivider()
+                    DropOffRow(
                         name = stringResource(stop.nameRes()),
                         selected = stop == state.selected,
                         onClick = { onSelect(stop) },
@@ -83,12 +90,13 @@ fun RideSheet(
                 }
             }
 
+            Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = stringResource(R.string.ride_sheet_help),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.busColors.textTertiary,
+                color = MaterialTheme.busColors.textSecondary,
             )
-
+            Spacer(modifier = Modifier.height(20.dp))
             BusButton(
                 text = stringResource(R.string.ride_sheet_confirm),
                 onClick = onConfirm,
@@ -99,36 +107,27 @@ fun RideSheet(
 }
 
 @Composable
-private fun DropOffOption(name: String, selected: Boolean, onClick: () -> Unit) {
-    val scheme = MaterialTheme.colorScheme
-    Surface(
+private fun DropOffRow(name: String, selected: Boolean, onClick: () -> Unit) {
+    Row(
         modifier = Modifier
             .fillMaxWidth()
+            .height(56.dp)
             .selectable(selected = selected, onClick = onClick, role = Role.RadioButton),
-        shape = RoundedCornerShape(12.dp),
-        color = scheme.surface,
-        border = BorderStroke(if (selected) 2.dp else 1.dp, if (selected) scheme.primary else scheme.outlineVariant),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Box(
-                modifier = Modifier.size(20.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Surface(
-                    modifier = Modifier.size(20.dp),
-                    shape = CircleShape,
-                    color = scheme.surface,
-                    border = BorderStroke(2.dp, if (selected) scheme.primary else scheme.outline),
-                ) {}
-                if (selected) {
-                    Surface(modifier = Modifier.size(10.dp), shape = CircleShape, color = scheme.primary) {}
-                }
-            }
-            Text(text = name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Text(
+            text = name,
+            style = MaterialTheme.typography.titleMedium,
+            color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.busColors.textSecondary,
+        )
+        if (selected) {
+            Icon(
+                imageVector = Icons.Filled.Check,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(22.dp),
+            )
         }
     }
 }

@@ -7,16 +7,16 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -25,7 +25,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -33,6 +32,8 @@ import com.tukorea.bus.R
 import com.tukorea.bus.domain.model.RideIntent
 import com.tukorea.bus.ui.common.BusButton
 import com.tukorea.bus.ui.common.EmptyState
+import com.tukorea.bus.ui.common.RowDivider
+import com.tukorea.bus.ui.common.SmallSecondaryButton
 import com.tukorea.bus.ui.common.ScreenTitle
 import com.tukorea.bus.ui.common.formatMinute
 import com.tukorea.bus.ui.common.label
@@ -66,20 +67,22 @@ fun MyRidesScreen(
     onRetry: () -> Unit,
 ) {
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding(),
         contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
             ScreenTitle(
-                modifier = Modifier.padding(bottom = 8.dp),
+                modifier = Modifier.padding(bottom = 16.dp),
                 title = stringResource(R.string.my_rides_title),
                 subtitle = stringResource(R.string.my_rides_subtitle),
             )
         }
         when {
-            state.rides.isNotEmpty() -> items(state.rides, key = { it.id }) { ride ->
-                RideCard(
+            state.rides.isNotEmpty() -> itemsIndexed(state.rides, key = { _, ride -> ride.id }) { index, ride ->
+                if (index > 0) RowDivider()
+                RideRow(
                     ride = ride,
                     dateLabel = relativeDate(ride.serviceDate, state.today),
                     isCancelling = ride.id in state.cancellingIds,
@@ -104,43 +107,40 @@ fun MyRidesScreen(
     }
 }
 
+/** "10:00  정왕역 → 본교" / "오늘 · 본교 하차"  [취소] */
 @Composable
-private fun RideCard(ride: RideIntent, dateLabel: String, isCancelling: Boolean, onCancel: () -> Unit) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
+private fun RideRow(ride: RideIntent, dateLabel: String, isCancelling: Boolean, onCancel: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier.padding(start = 20.dp, top = 16.dp, bottom = 16.dp, end = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = dateLabel,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.busColors.textSecondary,
-                )
-                Text(
+                    modifier = Modifier.alignByBaseline(),
                     text = formatMinute(ride.departMinute),
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.ExtraBold,
+                    style = MaterialTheme.typography.headlineSmall,
                 )
-                Text(text = ride.direction.label(), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = stringResource(R.string.my_rides_drop_off, stringResource(ride.dropOff.nameRes())),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.busColors.textSecondary,
+                    modifier = Modifier.alignByBaseline(),
+                    text = ride.direction.label(),
+                    style = MaterialTheme.typography.titleMedium,
                 )
             }
-            TextButton(onClick = onCancel, enabled = !isCancelling) {
-                Text(
-                    text = stringResource(R.string.my_rides_cancel),
-                    color = MaterialTheme.busColors.danger,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
+            Text(
+                text = stringResource(R.string.my_rides_meta, dateLabel, stringResource(ride.dropOff.nameRes())),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.busColors.textSecondary,
+            )
         }
+        SmallSecondaryButton(
+            text = stringResource(R.string.my_rides_cancel),
+            onClick = onCancel,
+            enabled = !isCancelling,
+        )
     }
 }
 

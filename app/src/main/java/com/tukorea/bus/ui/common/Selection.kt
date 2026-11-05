@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -21,7 +22,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.tukorea.bus.domain.model.ShuttleDirection
 import com.tukorea.bus.ui.theme.busColors
@@ -48,7 +48,6 @@ fun SelectablePill(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
             text = text,
             style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold,
             color = content,
         )
     }
@@ -80,7 +79,7 @@ fun DirectionPicker(
     }
 }
 
-/** 두세 개 중 하나를 고르는 세그먼트 컨트롤. */
+/** 두세 개 중 하나를 고르는 세그먼트 컨트롤. 그림자 없이 트랙과 선택 칸의 명도 차이로만 구분한다. */
 @Composable
 fun SegmentedControl(
     options: List<String>,
@@ -89,27 +88,31 @@ fun SegmentedControl(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .height(44.dp),
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surfaceVariant,
     ) {
         Row(modifier = Modifier.padding(4.dp)) {
             options.forEachIndexed { index, option ->
                 val selected = index == selectedIndex
+                val thumb by animateColorAsState(
+                    if (selected) MaterialTheme.busColors.segmentThumb else MaterialTheme.colorScheme.surfaceVariant,
+                    label = "segment",
+                )
                 Surface(
                     modifier = Modifier
                         .weight(1f)
-                        .height(40.dp)
+                        .fillMaxHeight()
                         .selectable(selected = selected, onClick = { onSelect(index) }, role = Role.Tab),
-                    shape = RoundedCornerShape(9.dp),
-                    color = if (selected) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant,
-                    shadowElevation = if (selected) 1.dp else 0.dp,
+                    shape = RoundedCornerShape(10.dp),
+                    color = thumb,
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Text(
                             text = option,
                             style = MaterialTheme.typography.labelLarge,
-                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                             color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.busColors.textSecondary,
                         )
                     }
