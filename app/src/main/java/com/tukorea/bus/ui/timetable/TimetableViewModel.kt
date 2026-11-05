@@ -134,6 +134,20 @@ class TimetableViewModel @Inject constructor(
             .map { it.departMinute }
             .toSet()
 
+        val hourRows = fixed.groupBy { it.minute / 60 }.map { (hour, departures) ->
+            HourRow(
+                hour = hour,
+                cells = departures.map { dep ->
+                    TimeCell(
+                        departure = dep,
+                        isPast = isToday && dep.minute < moment.minuteOfDay,
+                        isNext = dep.minute == nextMinute,
+                        isReserved = isToday && dep.minute in reservedMinutes,
+                    )
+                },
+            )
+        }
+
         return TimetableUiState(
             isLoading = false,
             title = timetable.title,
@@ -142,19 +156,8 @@ class TimetableViewModel @Inject constructor(
             directions = directions,
             selectedDirection = direction,
             onDemand = rows.filter { it.isOnDemand },
-            hours = fixed.groupBy { it.minute / 60 }.map { (hour, departures) ->
-                HourRow(
-                    hour = hour,
-                    cells = departures.map { dep ->
-                        TimeCell(
-                            departure = dep,
-                            isPast = isToday && dep.minute < moment.minuteOfDay,
-                            isNext = dep.minute == nextMinute,
-                            isReserved = isToday && dep.minute in reservedMinutes,
-                        )
-                    },
-                )
-            },
+            hours = hourRows,
+            isCompact = hourRows.isNotEmpty() && hourRows.all { it.cells.size <= COMPACT_MAX_PER_HOUR },
             notes = fixed.filter { it.note != null },
             isToday = isToday,
             rideSheet = sheet,
@@ -166,5 +169,9 @@ class TimetableViewModel @Inject constructor(
         val from = formatShortDate(timetable.validFrom) ?: return null
         val to = formatShortDate(timetable.validTo) ?: return null
         return "$from – $to"
+    }
+
+    private companion object {
+        const val COMPACT_MAX_PER_HOUR = 2
     }
 }

@@ -159,8 +159,14 @@ fun TimetableScreen(
             }
             else -> {
                 items(state.onDemand, key = { "od-${it.minute}" }) { OnDemandRow(it) }
-                items(state.hours, key = { "h-${it.hour}" }) { row ->
-                    HourRowItem(row = row, isToday = state.isToday, onTap = onTapDeparture)
+                if (state.isCompact) {
+                    item(key = "compact") {
+                        CompactTimes(cells = state.hours.flatMap { it.cells }, isToday = state.isToday, onTap = onTapDeparture)
+                    }
+                } else {
+                    items(state.hours, key = { "h-${it.hour}" }) { row ->
+                        HourRowItem(row = row, isToday = state.isToday, onTap = onTapDeparture)
+                    }
                 }
                 if (state.notes.isNotEmpty()) {
                     item {
@@ -229,6 +235,22 @@ private fun HourRowItem(row: HourRow, isToday: Boolean, onTap: (Departure) -> Un
             row.cells.forEach { cell ->
                 TimeChip(cell = cell, enabled = isToday && cell.isReservable, onClick = { onTap(cell.departure) })
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun CompactTimes(cells: List<TimeCell>, isToday: Boolean, onTap: (Departure) -> Unit) {
+    FlowRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = Inset, end = Inset, top = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        cells.forEach { cell ->
+            TimeChip(cell = cell, enabled = isToday && cell.isReservable, onClick = { onTap(cell.departure) })
         }
     }
 }
