@@ -216,7 +216,7 @@ private fun HourRowItem(row: HourRow, isToday: Boolean, onTap: (Departure) -> Un
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = Inset, end = Inset, top = 24.dp),
+            .padding(start = Inset, end = Inset, top = 20.dp),
         verticalAlignment = Alignment.Top,
     ) {
         Text(

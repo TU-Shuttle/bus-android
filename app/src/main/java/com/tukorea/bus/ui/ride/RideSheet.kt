@@ -60,26 +60,24 @@ fun RideSheet(
                 .navigationBarsPadding(),
         ) {
             Text(
-                text = if (single) {
-                    stringResource(R.string.ride_sheet_single_title, time)
-                } else {
-                    stringResource(R.string.ride_sheet_title)
-                },
+                text = stringResource(R.string.ride_sheet_single_title, time),
                 style = MaterialTheme.typography.headlineSmall,
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = if (single) {
-                    stringResource(R.string.ride_sheet_meta, state.target.direction.label(), dateLabel)
-                } else {
-                    stringResource(R.string.ride_sheet_subtitle, dateLabel, time, state.target.direction.label())
-                },
+                text = stringResource(R.string.ride_sheet_meta, state.target.direction.label(), dateLabel),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.busColors.textSecondary,
             )
 
             if (!single) {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(20.dp))
+                Text(
+                    text = stringResource(R.string.ride_sheet_title),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.busColors.textSecondary,
+                )
+                Spacer(modifier = Modifier.height(4.dp))
                 state.options.forEachIndexed { index, stop ->
                     if (index > 0) RowDivider()
                     DropOffRow(

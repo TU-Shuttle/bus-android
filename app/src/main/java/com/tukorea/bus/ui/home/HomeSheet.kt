@@ -174,7 +174,13 @@ private fun UpcomingBlock(
             if (next == null && upcoming.onDemandUntil != null) {
                 add(stringResource(R.string.home_on_demand_until, formatMinute(upcoming.onDemandUntil)))
             }
-            if (next != null && state.nextRiders > 0) add(stringResource(R.string.home_riders_planned, state.nextRiders))
+            if (next != null && state.nextRiders > 0) {
+                // 내가 남긴 예정도 인원에 들어 있으므로, 나뿐이면 굳이 보여 주지 않는다.
+                when {
+                    state.reservedForNext == null -> add(stringResource(R.string.home_riders_planned, state.nextRiders))
+                    state.nextRiders > 1 -> add(stringResource(R.string.home_riders_with_me, state.nextRiders))
+                }
+            }
             val later = upcoming.next.drop(1)
             if (later.isNotEmpty()) {
                 add(stringResource(R.string.home_later, later.joinToString(" · ") { formatMinute(it.minute) }))
