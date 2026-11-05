@@ -21,7 +21,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import com.tukorea.bus.ui.home.ModalHeight
-import com.tukorea.bus.ui.theme.Gray300
 
 /**
  * 드래그 가능한 바텀 모달 컴포넌트
@@ -96,9 +95,9 @@ fun BottomModal(
                 .fillMaxWidth()
                 .height(finalHeight)
                 .align(Alignment.BottomCenter),
-            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
             color = MaterialTheme.colorScheme.surface,
-            shadowElevation = 16.dp
+            shadowElevation = 12.dp
         ) {
             Column(
                 modifier = Modifier
@@ -148,7 +147,7 @@ fun BottomModal(
                             .width(40.dp)
                             .height(4.dp)
                             .background(
-                                color = Gray300,
+                                color = MaterialTheme.colorScheme.outline,
                                 shape = RoundedCornerShape(2.dp)
                             )
                     )
@@ -204,7 +203,7 @@ fun BottomModal(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 20.dp)
+                        .padding(horizontal = 24.dp)
                         .nestedScroll(nestedScrollConnection)
                         .verticalScroll(scrollState)
                 ) {

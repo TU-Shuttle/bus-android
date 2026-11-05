@@ -33,6 +33,8 @@ import androidx.compose.ui.res.stringResource
 import com.tukorea.bus.R
 import com.tukorea.bus.domain.model.Reservation
 import com.tukorea.bus.ui.common.BottomModal
+import com.tukorea.bus.ui.common.BusButton
+import com.tukorea.bus.ui.common.StatusDot
 import com.tukorea.bus.ui.navigation.Screen
 import com.tukorea.bus.ui.theme.*
 
@@ -73,6 +75,12 @@ fun HomeModal(
             Spacer(modifier = Modifier.height(16.dp))
         }
 
+        RealtimeArrivalInfo(
+            runningBusesCount = runningBusesCount,
+            waitingBusesCount = waitingBusesCount
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+
         val hasReservation = remember(nextReservation) { nextReservation != null }
 
         if (hasReservation) {
@@ -87,13 +95,6 @@ fun HomeModal(
         }
 
         QuickActionGrid(onNavigateTo = onNavigateTo)
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        RealtimeArrivalInfo(
-            runningBusesCount = runningBusesCount,
-            waitingBusesCount = waitingBusesCount
-        )
     }
 }
 
@@ -102,9 +103,11 @@ fun NoticeBanner(
     onNavigateTo: (String) -> Unit,
     firstUnreadImportantNoticeId: Int? = null
 ) {
+    val bus = MaterialTheme.busColors
     Surface(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
             .clickable {
                 // 첫 번째 중요 알림이 있으면 그 상세 화면으로, 없으면 알림 목록으로 이동
                 if (firstUnreadImportantNoticeId != null) {
@@ -114,47 +117,39 @@ fun NoticeBanner(
                 }
             },
         shape = RoundedCornerShape(16.dp),
-        color = Orange50,
-        border = BorderStroke(1.5.dp, Orange600)
+        color = bus.warningContainer
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .background(Orange600, RoundedCornerShape(8.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Info,
-                    contentDescription = null,
-                    tint = White,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
+            Icon(
+                imageVector = Icons.Default.Campaign,
+                contentDescription = null,
+                tint = bus.warning,
+                modifier = Modifier.size(24.dp)
+            )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = stringResource(id = R.string.home_notice_title),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = Gray900
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = stringResource(id = R.string.home_notice_subtitle),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Gray600
+                    color = bus.textSecondary
                 )
             }
             Icon(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = null,
-                tint = Gray400,
+                tint = bus.textTertiary,
                 modifier = Modifier.size(24.dp)
             )
         }
@@ -178,12 +173,6 @@ fun NextReservationCard(
         label = "reservation_card_scale"
     )
 
-    val gradientColors = remember {
-        listOf(
-            PrimaryBlue, Blue500
-        )
-    }
-
     // 접근성용 설명 텍스트는 Composable 컨텍스트에서 미리 계산한다
     val reservationA11yText = stringResource(
         id = R.string.home_next_reservation_a11y,
@@ -199,12 +188,8 @@ fun NextReservationCard(
         modifier = Modifier
             .fillMaxWidth()
             .graphicsLayer(scaleX = scale, scaleY = scale)
-            .clip(RoundedCornerShape(16.dp))
-            .background(
-                brush = remember(gradientColors) {
-                    Brush.horizontalGradient(colors = gradientColors)
-                }
-            )
+            .clip(RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.primary)
             .clickable(
                 interactionSource = interactionSource,
                 onClick = { onNavigateTo(Screen.Ride.route) }
@@ -333,80 +318,35 @@ fun NextReservationCard(
 
 @Composable
 fun NoReservationCard(onNavigateTo: (String) -> Unit) {
-    Card(
+    Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        color = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // 아이콘
-            Box(
-                modifier = Modifier
-                    .size(64.dp)
-                    .background(
-                        Blue50,
-                        CircleShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.DateRange,
-                    contentDescription = null,
-                    modifier = Modifier.size(32.dp),
-                    tint = PrimaryBlue
-                )
-            }
-
-            // 메시지
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     text = stringResource(id = R.string.home_no_reservation_title),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
-                    color = Gray900
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = stringResource(id = R.string.home_no_reservation_subtitle),
                     style = MaterialTheme.typography.bodyLarge,
-                    color = Gray500
+                    color = MaterialTheme.busColors.textSecondary
                 )
             }
 
-            // 예약하기 버튼
-            Button(
-                onClick = { onNavigateTo(Screen.Calendar.route) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = PrimaryBlue
-                ),
-                shape = RoundedCornerShape(14.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.DateRange,
-                    contentDescription = null,
-                    modifier = Modifier.size(22.dp)
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = stringResource(id = R.string.home_reserve_button),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+            BusButton(
+                text = stringResource(id = R.string.home_reserve_button),
+                onClick = { onNavigateTo(Screen.Calendar.route) }
+            )
         }
     }
 }
@@ -421,10 +361,10 @@ fun QuickActionGrid(onNavigateTo: (String) -> Unit) {
             icon = Icons.Default.LocalFireDepartment,
             label = stringResource(id = R.string.home_quick_ride_label),
             subtitle = stringResource(id = R.string.home_quick_ride_subtitle),
-            backgroundColor = Blue50,
-            iconColor = PrimaryBlue,
-            textColor = Gray900,
-            subtitleColor = Gray500,
+            backgroundColor = MaterialTheme.colorScheme.surfaceVariant,
+            iconColor = MaterialTheme.colorScheme.primary,
+            textColor = MaterialTheme.colorScheme.onSurface,
+            subtitleColor = MaterialTheme.busColors.textSecondary,
             modifier = Modifier.weight(1f),
             onClick = { onNavigateTo(Screen.QuickRide.route) }
         )
@@ -432,10 +372,10 @@ fun QuickActionGrid(onNavigateTo: (String) -> Unit) {
             icon = Icons.Default.DateRange,
             label = stringResource(id = R.string.home_reservation_label),
             subtitle = stringResource(id = R.string.home_reservation_subtitle),
-            backgroundColor = Green50,
-            iconColor = SuccessGreen,
-            textColor = Gray900,
-            subtitleColor = Gray500,
+            backgroundColor = MaterialTheme.colorScheme.surfaceVariant,
+            iconColor = MaterialTheme.busColors.success,
+            textColor = MaterialTheme.colorScheme.onSurface,
+            subtitleColor = MaterialTheme.busColors.textSecondary,
             modifier = Modifier.weight(1f),
             onClick = { onNavigateTo(Screen.Calendar.route) }
         )
@@ -460,57 +400,44 @@ fun QuickActionButton(
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.97f else 1f,
         animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMedium
         ),
         label = "quick_action_scale"
     )
 
-    // elevation을 파생 상태로 최적화
-    val elevation = remember(isPressed) {
-        if (isPressed) 2.dp else 1.dp
-    }
-
-    Card(
+    Surface(
         modifier = modifier
             .graphicsLayer(scaleX = scale, scaleY = scale)
             .semantics {
                 contentDescription = "$label 버튼, $subtitle"
             },
         onClick = onClick,
-        colors = CardDefaults.cardColors(
-            containerColor = backgroundColor
-        ),
-        shape = RoundedCornerShape(18.dp),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = elevation
-        )
+        interactionSource = interactionSource,
+        color = backgroundColor,
+        shape = RoundedCornerShape(20.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 아이콘 박스
             Box(
                 modifier = Modifier
-                    .size(48.dp)
-                    .background(iconColor, RoundedCornerShape(14.dp)),
+                    .size(44.dp)
+                    .background(iconColor.copy(alpha = 0.12f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = label,
-                    tint = Color.White,
+                    tint = iconColor,
                     modifier = Modifier.size(24.dp)
                 )
             }
 
-            // 제목과 부제목
-            Column(
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     text = label,
                     style = MaterialTheme.typography.titleMedium,
@@ -532,31 +459,35 @@ fun RealtimeArrivalInfo(
     runningBusesCount: Int,
     waitingBusesCount: Int
 ) {
-    Card(
+    val bus = MaterialTheme.busColors
+    Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Gray50
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        color = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            StatusDot(
+                color = if (runningBusesCount > 0) bus.success else bus.textTertiary,
+                pulsing = runningBusesCount > 0
+            )
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = stringResource(id = R.string.home_realtime_info_title),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = Gray900
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = buildString {
+                        if (runningBusesCount == 0 && waitingBusesCount == 0) {
+                            append(stringResource(id = R.string.home_realtime_none))
+                        }
                         if (runningBusesCount > 0) {
                             append(stringResource(id = R.string.home_realtime_running))
                             append(" ")
@@ -572,16 +503,15 @@ fun RealtimeArrivalInfo(
                         }
                     },
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Gray600
+                    color = bus.textSecondary
                 )
             }
             Icon(
                 imageVector = Icons.Default.DirectionsBus,
                 contentDescription = null,
                 modifier = Modifier.size(24.dp),
-                tint = PrimaryBlue
+                tint = MaterialTheme.colorScheme.primary
             )
         }
     }
 }
-

@@ -7,11 +7,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.tukorea.bus.ui.navigation.Screen
 import com.tukorea.bus.ui.theme.BusTheme
-import com.tukorea.bus.ui.theme.PrimaryBlue
-import com.tukorea.bus.ui.theme.Gray400
-import com.tukorea.bus.ui.theme.White
+import com.tukorea.bus.ui.theme.busColors
 
 data class BottomNavItem(
     val route: String, val icon: ImageVector, val label: String
@@ -29,7 +28,8 @@ fun BottomNavigationBar(
     )
 
     NavigationBar(
-        containerColor = White
+        containerColor = MaterialTheme.colorScheme.surface,
+        tonalElevation = 0.dp
     ) {
         navItems.forEach { item ->
             NavigationBarItem(
@@ -44,11 +44,11 @@ fun BottomNavigationBar(
                     onNavigate(item.route)
                 }
             }, colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = PrimaryBlue, selectedTextColor = PrimaryBlue,
+                selectedIconColor = MaterialTheme.colorScheme.primary, selectedTextColor = MaterialTheme.colorScheme.primary,
 
                 indicatorColor = Color.Transparent,
 
-                unselectedIconColor = Gray400, unselectedTextColor = Gray400
+                unselectedIconColor = MaterialTheme.busColors.textTertiary, unselectedTextColor = MaterialTheme.busColors.textTertiary
             )
             )
         }

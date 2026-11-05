@@ -32,7 +32,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tukorea.bus.R
 import com.tukorea.bus.ui.main.MainActivity
-import com.tukorea.bus.ui.theme.Blue600
+import com.tukorea.bus.ui.theme.Black
 import com.tukorea.bus.ui.theme.BusTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -87,7 +87,7 @@ private fun SplashContent() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Blue600),
+            .background(Black),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {

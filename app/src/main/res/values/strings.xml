@@ -20,6 +20,7 @@
     <string name="home_reservation_subtitle">미리 예약</string>
 
     <string name="home_realtime_info_title">실시간 도착 정보</string>
+    <string name="home_realtime_none">지금 운행 중인 버스가 없어요</string>
     <string name="home_realtime_running">운행중</string>
     <string name="home_realtime_waiting">대기중</string>
     <string name="home_realtime_bus_count">%1$d대</string>
