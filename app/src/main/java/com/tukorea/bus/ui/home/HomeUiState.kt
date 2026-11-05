@@ -1,13 +1,10 @@
 package com.tukorea.bus.ui.home
 
-import androidx.annotation.StringRes
 import com.tukorea.bus.domain.model.Departure
 import com.tukorea.bus.domain.model.LiveBus
 import com.tukorea.bus.domain.model.LiveBusStatus
-import com.tukorea.bus.domain.model.RideIntent
 import com.tukorea.bus.domain.model.ShuttleDirection
 import com.tukorea.bus.domain.model.UpcomingDepartures
-import com.tukorea.bus.ui.ride.RideSheetState
 
 data class HomeUiState(
     val isLoading: Boolean = true,
@@ -21,12 +18,6 @@ data class HomeUiState(
     val outOfPeriod: String? = null,
     val liveBuses: List<LiveBus> = emptyList(),
     val liveUnavailable: Boolean = false,
-    /** 바로 다음 출발편에 탈 예정인 인원. */
-    val nextRiders: Int = 0,
-    /** 내가 바로 다음 출발편에 남긴 탑승 예정. */
-    val reservedForNext: RideIntent? = null,
-    val rideSheet: RideSheetState? = null,
-    @StringRes val messageRes: Int? = null,
 ) {
     val nextDeparture: Departure?
         get() = (upcoming as? UpcomingDepartures.Scheduled)?.next?.firstOrNull()

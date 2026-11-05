@@ -3,18 +3,15 @@ package com.tukorea.bus.data
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.tukorea.bus.data.model.ApiEnvelope
-import com.tukorea.bus.data.model.RideSummaryDto
 import com.tukorea.bus.data.model.TimetableDto
 import com.tukorea.bus.data.model.toDomain
 import com.tukorea.bus.data.model.toMinuteOfDay
 import com.tukorea.bus.domain.model.DayType
-import com.tukorea.bus.domain.model.ShuttleDirection
-import com.tukorea.bus.domain.model.ShuttleStop
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
-/** 서버(/api/bus/timetable, /api/rides/summary) 응답 형태 그대로의 fixture로 변환을 검증한다. */
+/** 서버(/api/bus/timetable) 응답 형태 그대로의 fixture로 변환을 검증한다. */
 class MappersTest {
 
     private val gson = Gson()
@@ -67,19 +64,6 @@ class MappersTest {
             "도착버스 탑승 17시 이후 시간은 파리바게뜨 건너편",
             envelope.data!!.toDomain().departures[2].note,
         )
-    }
-
-    @Test
-    fun `탑승_예정_집계를_정류장별로_바꾼다`() {
-        val json = """[{"direction":"STATION_TO_CAMPUS2_VIA_CAMPUS1","departTime":"09:00:00","riders":3,
-            "dropOffs":{"CAMPUS1_WEST_GATE":1,"CAMPUS2":2,"MARS":5}}]"""
-        val type = object : TypeToken<List<RideSummaryDto>>() {}.type
-        val summary = gson.fromJson<List<RideSummaryDto>>(json, type).single().toDomain()!!
-
-        assertEquals(ShuttleDirection.STATION_TO_CAMPUS2_VIA_CAMPUS1, summary.direction)
-        assertEquals(540, summary.departMinute)
-        assertEquals(3, summary.riders)
-        assertEquals(mapOf(ShuttleStop.CAMPUS1_WEST_GATE to 1, ShuttleStop.CAMPUS2 to 2), summary.dropOffs)
     }
 
     @Test

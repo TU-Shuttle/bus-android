@@ -24,17 +24,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -53,7 +48,6 @@ import com.tukorea.bus.ui.common.SectionLabel
 import com.tukorea.bus.ui.common.SegmentedControl
 import com.tukorea.bus.ui.common.formatMinute
 import com.tukorea.bus.ui.common.labelRes
-import com.tukorea.bus.ui.ride.RideSheet
 import com.tukorea.bus.ui.theme.busColors
 
 private val DAY_TYPES = listOf(DayType.WEEKDAY, DayType.SATURDAY)
@@ -62,35 +56,12 @@ private val Inset = 24.dp
 @Composable
 fun TimetableRoute(viewModel: TimetableViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val snackbar = remember { SnackbarHostState() }
-    val context = LocalContext.current
-
-    LaunchedEffect(state.messageRes) {
-        val res = state.messageRes ?: return@LaunchedEffect
-        snackbar.showSnackbar(context.getString(res))
-        viewModel.consumeMessage()
-    }
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        TimetableScreen(
-            state = state,
-            onSelectDayType = viewModel::selectDayType,
-            onSelectDirection = viewModel::selectDirection,
-            onTapDeparture = viewModel::openRide,
-            onRetry = viewModel::retry,
-        )
-        SnackbarHost(hostState = snackbar, modifier = Modifier.align(Alignment.BottomCenter))
-    }
-
-    state.rideSheet?.let { sheet ->
-        RideSheet(
-            state = sheet,
-            dateLabel = stringResource(R.string.date_today),
-            onSelect = viewModel::selectDropOff,
-            onConfirm = viewModel::confirmRide,
-            onDismiss = viewModel::dismissRideSheet,
-        )
-    }
+    TimetableScreen(
+        state = state,
+        onSelectDayType = viewModel::selectDayType,
+        onSelectDirection = viewModel::selectDirection,
+        onRetry = viewModel::retry,
+    )
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -99,7 +70,6 @@ fun TimetableScreen(
     state: TimetableUiState,
     onSelectDayType: (DayType) -> Unit,
     onSelectDirection: (com.tukorea.bus.domain.model.ShuttleDirection) -> Unit,
-    onTapDeparture: (Departure) -> Unit,
     onRetry: () -> Unit,
 ) {
     LazyColumn(
@@ -161,11 +131,11 @@ fun TimetableScreen(
                 items(state.onDemand, key = { "od-${it.minute}" }) { OnDemandRow(it) }
                 if (state.isCompact) {
                     item(key = "compact") {
-                        CompactTimes(cells = state.hours.flatMap { it.cells }, isToday = state.isToday, onTap = onTapDeparture)
+                        CompactTimes(cells = state.hours.flatMap { it.cells })
                     }
                 } else {
                     items(state.hours, key = { "h-${it.hour}" }) { row ->
-                        HourRowItem(row = row, isToday = state.isToday, onTap = onTapDeparture)
+                        HourRowItem(row = row, isToday = state.isToday)
                     }
                 }
                 if (state.notes.isNotEmpty()) {
@@ -211,7 +181,7 @@ private fun OnDemandRow(departure: Departure) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun HourRowItem(row: HourRow, isToday: Boolean, onTap: (Departure) -> Unit) {
+private fun HourRowItem(row: HourRow, isToday: Boolean) {
     val allPast = isToday && row.cells.all { it.isPast }
     Row(
         modifier = Modifier
@@ -232,16 +202,14 @@ private fun HourRowItem(row: HourRow, isToday: Boolean, onTap: (Departure) -> Un
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            row.cells.forEach { cell ->
-                TimeChip(cell = cell, enabled = isToday && cell.isReservable, onClick = { onTap(cell.departure) })
-            }
+            row.cells.forEach { cell -> TimeChip(cell = cell) }
         }
     }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun CompactTimes(cells: List<TimeCell>, isToday: Boolean, onTap: (Departure) -> Unit) {
+private fun CompactTimes(cells: List<TimeCell>) {
     FlowRow(
         modifier = Modifier
             .fillMaxWidth()
@@ -250,20 +218,19 @@ private fun CompactTimes(cells: List<TimeCell>, isToday: Boolean, onTap: (Depart
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         cells.forEach { cell ->
-            TimeChip(cell = cell, enabled = isToday && cell.isReservable, onClick = { onTap(cell.departure) })
+            TimeChip(cell = cell)
         }
     }
 }
 
 /**
- * 고정 크기 시각 칩. 다음 출발=검정 채움, 지난 시각=흐린 글자, 예약함=초록 점, 안내 있음=주황 점.
+ * 고정 크기 시각 칩. 다음 출발=검정 채움, 지난 시각=흐린 글자, 안내 있음=주황 점.
  */
 @Composable
-private fun TimeChip(cell: TimeCell, enabled: Boolean, onClick: () -> Unit) {
+private fun TimeChip(cell: TimeCell) {
     val scheme = MaterialTheme.colorScheme
     val bus = MaterialTheme.busColors
     val time = formatMinute(cell.departure.minute)
-    val reservedLabel = stringResource(R.string.a11y_reserved)
     val noteLabel = stringResource(R.string.a11y_has_note)
     val (container, content) = when {
         cell.isNext -> scheme.primary to scheme.onPrimary
@@ -276,23 +243,16 @@ private fun TimeChip(cell: TimeCell, enabled: Boolean, onClick: () -> Unit) {
             .semantics {
                 contentDescription = listOfNotNull(
                     time,
-                    reservedLabel.takeIf { cell.isReserved },
                     noteLabel.takeIf { cell.departure.note != null },
                 ).joinToString(", ")
             },
-        onClick = onClick,
-        enabled = enabled,
         shape = RoundedCornerShape(12.dp),
         color = container,
     ) {
         Box(contentAlignment = Alignment.Center) {
             Text(text = time, style = MaterialTheme.typography.labelLarge, color = content)
-            val dot = when {
-                cell.isReserved -> bus.success
-                cell.departure.note != null -> bus.warning
-                else -> null
-            }
-            if (dot != null) {
+            if (cell.departure.note != null) {
+                val dot = bus.warning
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)

@@ -12,17 +12,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,7 +28,6 @@ import androidx.compose.ui.unit.dp
 import com.tukorea.bus.R
 import com.tukorea.bus.domain.model.DayType
 import com.tukorea.bus.domain.model.Departure
-import com.tukorea.bus.domain.model.RideIntent
 import com.tukorea.bus.domain.model.ShuttleDirection
 import com.tukorea.bus.domain.model.ShuttleStop
 import com.tukorea.bus.domain.model.UpcomingDepartures
@@ -44,7 +38,6 @@ import com.tukorea.bus.ui.common.RowDivider
 import com.tukorea.bus.ui.common.StatusDot
 import com.tukorea.bus.ui.common.boardingRes
 import com.tukorea.bus.ui.common.formatMinute
-import com.tukorea.bus.ui.common.nameRes
 import com.tukorea.bus.ui.theme.BusTheme
 import com.tukorea.bus.ui.theme.busColors
 
@@ -52,8 +45,6 @@ private val Inset = 24.dp
 
 data class HomeSheetCallbacks(
     val onSelectDirection: (ShuttleDirection) -> Unit,
-    val onReserve: () -> Unit,
-    val onCancelReserve: () -> Unit,
     val onOpenTimetable: () -> Unit,
     val onRetry: () -> Unit,
 )
@@ -174,13 +165,6 @@ private fun UpcomingBlock(
             if (next == null && upcoming.onDemandUntil != null) {
                 add(stringResource(R.string.home_on_demand_until, formatMinute(upcoming.onDemandUntil)))
             }
-            if (next != null && state.nextRiders > 0) {
-                // 내가 남긴 예정도 인원에 들어 있으므로, 나뿐이면 굳이 보여 주지 않는다.
-                when {
-                    state.reservedForNext == null -> add(stringResource(R.string.home_riders_planned, state.nextRiders))
-                    state.nextRiders > 1 -> add(stringResource(R.string.home_riders_with_me, state.nextRiders))
-                }
-            }
             val later = upcoming.next.drop(1)
             if (later.isNotEmpty()) {
                 add(stringResource(R.string.home_later, later.joinToString(" · ") { formatMinute(it.minute) }))
@@ -198,51 +182,6 @@ private fun UpcomingBlock(
             )
         }
 
-        if (next != null) {
-            Spacer(modifier = Modifier.height(20.dp))
-            val reserved = state.reservedForNext
-            if (reserved == null) {
-                BusButton(text = stringResource(R.string.home_reserve), onClick = callbacks.onReserve)
-            } else {
-                ReservedRow(reserved = reserved, onCancel = callbacks.onCancelReserve)
-            }
-        }
-    }
-}
-
-/** 탑승 예정을 남긴 상태. CTA와 같은 56dp라 시트 높이가 바뀌지 않는다. */
-@Composable
-private fun ReservedRow(reserved: RideIntent, onCancel: () -> Unit) {
-    val bus = MaterialTheme.busColors
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(56.dp),
-        shape = RoundedCornerShape(12.dp),
-        color = bus.successContainer,
-    ) {
-        Row(modifier = Modifier.padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Filled.CheckCircle,
-                contentDescription = null,
-                tint = bus.success,
-                modifier = Modifier.size(20.dp),
-            )
-            Spacer(modifier = Modifier.width(10.dp))
-            Text(
-                modifier = Modifier.weight(1f),
-                text = stringResource(R.string.home_reserved, stringResource(reserved.dropOff.nameRes())),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            TextButton(onClick = onCancel) {
-                Text(
-                    text = stringResource(R.string.my_rides_cancel),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = bus.textSecondary,
-                )
-            }
-        }
     }
 }
 
@@ -363,9 +302,8 @@ private fun HomeSheetPreview() {
                     ),
                 ),
                 nowMinute = 14 * 60 + 2,
-                nextRiders = 3,
             ),
-            callbacks = HomeSheetCallbacks({}, {}, {}, {}, {}),
+            callbacks = HomeSheetCallbacks({}, {}, {}),
         )
     }
 }

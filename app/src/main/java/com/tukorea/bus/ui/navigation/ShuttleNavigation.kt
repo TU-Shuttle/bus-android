@@ -2,11 +2,9 @@ package com.tukorea.bus.ui.navigation
 
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.outlined.ConfirmationNumber
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.Schedule
@@ -30,7 +28,6 @@ import androidx.navigation.compose.composable
 import com.tukorea.bus.R
 import com.tukorea.bus.ui.home.HomeRoute
 import com.tukorea.bus.ui.info.InfoRoute
-import com.tukorea.bus.ui.rides.MyRidesRoute
 import com.tukorea.bus.ui.theme.busColors
 import com.tukorea.bus.ui.timetable.TimetableRoute
 
@@ -42,7 +39,6 @@ enum class Destination(
 ) {
     HOME("home", R.string.tab_home, Icons.Outlined.Map, Icons.Filled.Map),
     TIMETABLE("timetable", R.string.tab_timetable, Icons.Outlined.Schedule, Icons.Filled.Schedule),
-    MY_RIDES("my_rides", R.string.tab_my_rides, Icons.Outlined.ConfirmationNumber, Icons.Filled.ConfirmationNumber),
     INFO("info", R.string.tab_info, Icons.Outlined.Info, Icons.Filled.Info),
 }
 
@@ -61,7 +57,6 @@ fun ShuttleNavHost(navController: NavHostController, modifier: Modifier = Modifi
             HomeRoute(onOpenTimetable = { navController.navigateToTab(Destination.TIMETABLE) })
         }
         composable(Destination.TIMETABLE.route) { TimetableRoute() }
-        composable(Destination.MY_RIDES.route) { MyRidesRoute() }
         composable(Destination.INFO.route) { InfoRoute() }
     }
 }

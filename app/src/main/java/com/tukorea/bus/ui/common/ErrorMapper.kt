@@ -9,6 +9,5 @@ import com.tukorea.bus.domain.error.AppError
 fun AppError.messageRes(): Int = when (this) {
     AppError.NetworkError -> R.string.error_network
     AppError.NotFound -> R.string.error_not_found
-    AppError.Rejected -> R.string.error_rejected
-    AppError.UnknownError, is AppError.CustomError -> R.string.error_unknown
+    AppError.Rejected, AppError.UnknownError, is AppError.CustomError -> R.string.error_unknown
 }

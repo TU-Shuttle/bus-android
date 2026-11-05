@@ -4,11 +4,7 @@ import com.tukorea.bus.domain.model.DayType
 import com.tukorea.bus.domain.model.Departure
 import com.tukorea.bus.domain.model.LiveBus
 import com.tukorea.bus.domain.model.LiveBusStatus
-import com.tukorea.bus.domain.model.RideIntent
-import com.tukorea.bus.domain.model.RideSummary
-import com.tukorea.bus.domain.model.RideTarget
 import com.tukorea.bus.domain.model.ShuttleDirection
-import com.tukorea.bus.domain.model.ShuttleStop
 import com.tukorea.bus.domain.model.Timetable
 
 /*
@@ -53,35 +49,6 @@ fun LiveBusDto.toDomain(): LiveBus? {
         updatedAtMillis = updatedAt ?: 0L,
     )
 }
-
-fun RideDto.toDomain(): RideIntent? {
-    return RideIntent(
-        id = id ?: return null,
-        serviceDate = serviceDate ?: return null,
-        direction = enumOrNull<ShuttleDirection>(direction) ?: return null,
-        departMinute = departTime?.toMinuteOfDay() ?: return null,
-        dropOff = enumOrNull<ShuttleStop>(dropOff) ?: return null,
-    )
-}
-
-fun RideSummaryDto.toDomain(): RideSummary? {
-    return RideSummary(
-        direction = enumOrNull<ShuttleDirection>(direction) ?: return null,
-        departMinute = departTime?.toMinuteOfDay() ?: return null,
-        riders = (riders ?: 0L).toInt(),
-        dropOffs = dropOffs.orEmpty()
-            .mapNotNull { (stop, count) -> enumOrNull<ShuttleStop>(stop)?.let { it to count.toInt() } }
-            .toMap(),
-    )
-}
-
-fun RideTarget.toBody(dropOff: ShuttleStop): CreateRideBody =
-    CreateRideBody(
-        serviceDate = serviceDate,
-        direction = direction.name,
-        departTime = "%02d:%02d".format(departMinute / 60, departMinute % 60),
-        dropOff = dropOff.name,
-    )
 
 /** "09:40", "09:40:00" → 580 */
 internal fun String.toMinuteOfDay(): Int? {

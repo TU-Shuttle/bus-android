@@ -28,25 +28,3 @@ data class LiveBusDto(
     val status: String?,
     val updatedAt: Long?,
 )
-
-data class RideDto(
-    val id: Long?,
-    val serviceDate: String?,
-    val direction: String?,
-    val departTime: String?,
-    val dropOff: String?,
-)
-
-data class RideSummaryDto(
-    val direction: String?,
-    val departTime: String?,
-    val riders: Long?,
-    val dropOffs: Map<String, Long>?,
-)
-
-data class CreateRideBody(
-    val serviceDate: String,
-    val direction: String,
-    val departTime: String,
-    val dropOff: String,
-)

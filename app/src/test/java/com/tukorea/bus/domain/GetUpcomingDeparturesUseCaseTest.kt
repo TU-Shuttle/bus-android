@@ -73,4 +73,11 @@ class GetUpcomingDeparturesUseCaseTest {
 
         assertEquals(UpcomingDepartures.Scheduled(onDemandUntil = null, next = emptyList()), result)
     }
+
+    @Test
+    fun `시간표_적용기간_밖인지_판단한다`() {
+        assertEquals(true, timetable.isValidOn("2026-11-06"))
+        assertEquals(false, timetable.isValidOn("2026-12-23"))
+        assertEquals(false, timetable.isValidOn("2026-08-31"))
+    }
 }

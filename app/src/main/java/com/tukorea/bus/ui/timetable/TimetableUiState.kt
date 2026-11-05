@@ -1,20 +1,14 @@
 package com.tukorea.bus.ui.timetable
 
-import androidx.annotation.StringRes
 import com.tukorea.bus.domain.model.DayType
 import com.tukorea.bus.domain.model.Departure
 import com.tukorea.bus.domain.model.ShuttleDirection
-import com.tukorea.bus.ui.ride.RideSheetState
 
 data class TimeCell(
     val departure: Departure,
     val isPast: Boolean,
     val isNext: Boolean,
-    val isReserved: Boolean,
-) {
-    /** 오늘 남은 정시 출발만 탑승 예정을 남길 수 있다. */
-    val isReservable: Boolean get() = !isPast
-}
+)
 
 data class HourRow(val hour: Int, val cells: List<TimeCell>)
 
@@ -31,8 +25,6 @@ data class TimetableUiState(
     /** 시간마다 1~2대뿐인 노선은 시간대로 묶지 않고 한 덩어리로 보여 준다(빈 줄이 늘어나지 않게). */
     val isCompact: Boolean = false,
     val notes: List<Departure> = emptyList(),
-    /** 고른 요일이 오늘이면 지난 시간/다음 시간을 표시하고 탑승 예정을 받을 수 있다. */
+    /** 고른 요일이 오늘이면 지난 시간과 다음 시간을 표시한다. */
     val isToday: Boolean = false,
-    val rideSheet: RideSheetState? = null,
-    @StringRes val messageRes: Int? = null,
 )
