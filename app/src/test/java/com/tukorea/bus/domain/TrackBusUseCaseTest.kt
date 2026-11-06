@@ -64,4 +64,46 @@ class TrackBusUseCaseTest {
         assertNull(result.speedKmh)
         assertTrue(result.etaMinutes!! >= 1)
     }
+
+    /** 정왕역 → 본교 서문 → 제2캠퍼스를 직선으로 잇는 경유 노선. */
+    private val via = ShuttleRoute(
+        ShuttleDirection.STATION_TO_CAMPUS2_VIA_CAMPUS1,
+        listOf(ShuttleStop.JEONGWANG_STATION.point, ShuttleStop.CAMPUS1_WEST_GATE.point, ShuttleStop.CAMPUS2.point),
+    )
+
+    @Test
+    fun `via route heads to the middle stop first and also gives the final stop`() {
+        val start = ShuttleStop.JEONGWANG_STATION.point
+        val result = useCase(
+            LiveBus("bus-1", start.latitude, start.longitude, LiveBusStatus.RUNNING, 0, ShuttleDirection.STATION_TO_CAMPUS2_VIA_CAMPUS1),
+            previous = null,
+            route = via,
+        )
+
+        assertEquals(ShuttleStop.CAMPUS1_WEST_GATE, result.nextStop)
+        assertEquals(ShuttleStop.CAMPUS2, result.finalStop)
+        assertTrue(result.finalEtaMinutes!! > result.etaMinutes!!)
+    }
+
+    @Test
+    fun `after the middle stop only the final stop remains`() {
+        val gate = ShuttleStop.CAMPUS1_WEST_GATE.point
+        val result = useCase(
+            LiveBus("bus-1", gate.latitude, gate.longitude, LiveBusStatus.RUNNING, 0, ShuttleDirection.STATION_TO_CAMPUS2_VIA_CAMPUS1),
+            previous = null,
+            route = via,
+        )
+
+        assertEquals(ShuttleStop.CAMPUS2, result.nextStop)
+        assertNull(result.finalStop)
+    }
+
+    @Test
+    fun `bus on the same route is forward even if gps jitters backward`() {
+        // 직전보다 조금 뒤로 튄 위치지만, 기사가 이 노선을 골랐으므로 정방향으로 본다.
+        val now = LiveBus("bus-1", 37.3440, 126.7300, LiveBusStatus.RUNNING, 10_000, ShuttleDirection.CAMPUS1_TO_STATION)
+        val before = LiveBus("bus-1", 37.3450, 126.7300, LiveBusStatus.RUNNING, 0, ShuttleDirection.CAMPUS1_TO_STATION)
+
+        assertEquals(ShuttleStop.JEONGWANG_STATION, useCase(now, before, route).nextStop)
+    }
 }

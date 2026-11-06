@@ -10,7 +10,12 @@ data class BusTracking(
     val headingDegrees: Double?,
     /** 직전 두 위치로 잰 속도. */
     val speedKmh: Int?,
+    /** 바로 다음에 닿을 정류장(경유 노선이면 중간 정류장일 수 있다). */
     val nextStop: ShuttleStop?,
+    /** [nextStop]까지 남은 거리·시간. */
     val remainingMeters: Int?,
     val etaMinutes: Int?,
+    /** 다음 정류장이 종점이 아닐 때만 종점과 종점까지의 시간. */
+    val finalStop: ShuttleStop? = null,
+    val finalEtaMinutes: Int? = null,
 )

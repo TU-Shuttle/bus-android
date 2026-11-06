@@ -4,6 +4,7 @@ import com.tukorea.bus.domain.model.BusTracking
 import com.tukorea.bus.domain.model.GeoPoint
 import com.tukorea.bus.domain.model.LiveBus
 import com.tukorea.bus.domain.model.ShuttleRoute
+import com.tukorea.bus.domain.model.ShuttleStop
 import com.tukorea.bus.domain.model.bearingDegrees
 import com.tukorea.bus.domain.model.distanceMeters
 import javax.inject.Inject
@@ -30,17 +31,37 @@ class TrackBusUseCase @Inject constructor() {
             return BusTracking(current, heading, speedMps?.toKmh(), nextStop = null, remainingMeters = null, etaMinutes = null)
         }
         val there = before?.let(route::project)
-        // 앞으로 가는지 모르겠으면(첫 위치, 정차 중) 노선 방향으로 간다고 본다.
-        val forward = there == null || here.alongMeters >= there.alongMeters - BACKWARD_TOLERANCE_METERS
-        val remaining = if (forward) route.lengthMeters - here.alongMeters else here.alongMeters
+        // 기사가 같은 노선을 골랐으면 그대로 정방향이다. 모르면 직전 위치와 비교하고, 그것도 모르면(첫 위치, 정차 중) 정방향으로 본다.
+        val forward = when {
+            current.direction == route.direction -> true
+            there == null -> true
+            else -> here.alongMeters >= there.alongMeters - BACKWARD_TOLERANCE_METERS
+        }
+        // 진행 방향 기준 "출발점부터 온 거리"로 맞춘 뒤, 아직 지나지 않은 첫 정류장을 다음 정류장으로 본다.
+        val travelled = if (forward) here.alongMeters else route.lengthMeters - here.alongMeters
+        val stopsAhead = (if (forward) route.direction.stops else route.direction.stops.reversed())
+            .mapNotNull { stop ->
+                val along = route.project(stop.point)?.alongMeters ?: return@mapNotNull null
+                stop to (if (forward) along else route.lengthMeters - along)
+            }
+            .filter { (_, at) -> at - travelled > ARRIVED_METERS }
         val travelSpeed = speedMps?.takeIf { it >= MIN_SPEED_FOR_ETA_MPS } ?: TYPICAL_SPEED_MPS
+        fun minutes(meters: Double) = ceil(meters / travelSpeed / 60.0).toInt()
+
+        val next = stopsAhead.firstOrNull()
+            // 마지막 정류장 바로 앞이면 그 정류장에 곧 도착한다.
+            ?: ((if (forward) route.direction.destination else route.direction.origin) to travelled)
+        val nextRemaining = (next.second - travelled).coerceAtLeast(0.0)
+        val final = stopsAhead.lastOrNull()?.takeIf { stopsAhead.size > 1 }
         return BusTracking(
             bus = current,
             headingDegrees = heading,
             speedKmh = speedMps?.toKmh(),
-            nextStop = if (forward) route.direction.destination else route.direction.origin,
-            remainingMeters = remaining.roundToInt(),
-            etaMinutes = ceil(remaining / travelSpeed / 60.0).toInt(),
+            nextStop = next.first,
+            remainingMeters = nextRemaining.roundToInt(),
+            etaMinutes = minutes(nextRemaining),
+            finalStop = final?.first,
+            finalEtaMinutes = final?.let { minutes(it.second - travelled) },
         )
     }
 
@@ -53,6 +74,9 @@ class TrackBusUseCase @Inject constructor() {
         const val ON_ROUTE_METERS = 80.0
         const val BACKWARD_TOLERANCE_METERS = 5.0
         const val MIN_SPEED_FOR_ETA_MPS = 3.0
+
+        /** 정류장을 이만큼 안쪽까지 지나면 다음 정류장으로 넘어간다. */
+        const val ARRIVED_METERS = 40.0
 
         /** 시내 셔틀 평균 속도(약 25km/h). 정차 중이면 이 값으로 남은 시간을 어림한다. */
         const val TYPICAL_SPEED_MPS = 7.0

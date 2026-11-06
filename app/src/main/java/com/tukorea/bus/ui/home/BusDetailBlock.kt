@@ -84,6 +84,16 @@ fun BusDetailBlock(tracking: BusTracking, onClose: () -> Unit, modifier: Modifie
             DetailRow(label = stringResource(R.string.bus_detail_remaining), value = formatDistance(it))
             RowDivider()
         }
+        // 경유 노선에서 다음 정류장이 중간 정류장이면 종점까지의 시간도 보여 준다.
+        val final = tracking.finalStop
+        val finalEta = tracking.finalEtaMinutes
+        if (final != null && finalEta != null) {
+            DetailRow(
+                label = stringResource(R.string.bus_detail_final, stringResource(final.nameRes())),
+                value = stringResource(R.string.bus_detail_minutes, finalEta),
+            )
+            RowDivider()
+        }
         DetailRow(
             label = stringResource(R.string.bus_detail_speed),
             value = tracking.speedKmh?.let { stringResource(R.string.bus_detail_speed_value, it) }

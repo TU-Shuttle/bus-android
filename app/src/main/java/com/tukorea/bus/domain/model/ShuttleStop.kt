@@ -18,4 +18,7 @@ enum class ShuttleStop(val latitude: Double, val longitude: Double) {
 
     /** 오이도역. 제2캠퍼스 17:40 출발 셔틀의 종점(본교를 거치지 않음). */
     OIDO_STATION(37.36236, 126.73871),
+    ;
+
+    val point: GeoPoint get() = GeoPoint(latitude, longitude)
 }
