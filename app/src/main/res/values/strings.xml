@@ -88,4 +88,5 @@
     <string name="a11y_bus_marker">셔틀 버스</string>
     <string name="a11y_locate_me">내 위치로 이동</string>
     <string name="a11y_has_note">안내 있음</string>
+    <string name="a11y_next_departure">다음 출발</string>
 </resources>

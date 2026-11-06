@@ -83,21 +83,33 @@ class TimetableViewModel @Inject constructor(
             .filter { it.dayType == dayType && it.direction == direction }
             .sortedBy { it.minute }
 
+        val now = moment.minuteOfDay
         val fixed = rows.filterNot { it.isOnDemand }
-        val nextMinute = if (isToday) fixed.firstOrNull { it.minute >= moment.minuteOfDay }?.minute else null
+        val nextMinute = if (isToday) fixed.firstOrNull { it.minute >= now }?.minute else null
 
-        val hourRows = fixed.groupBy { it.minute / 60 }.map { (hour, departures) ->
-            HourRow(
+        val hours = fixed.groupBy { it.minute / 60 }.map { (hour, departures) ->
+            TimetableEntry.Hour(
                 hour = hour,
                 cells = departures.map { dep ->
-                    TimeCell(
-                        departure = dep,
-                        isPast = isToday && dep.minute < moment.minuteOfDay,
-                        isNext = dep.minute == nextMinute,
-                    )
+                    TimeCell(departure = dep, isPast = isToday && dep.minute < now, isNext = dep.minute == nextMinute)
                 },
             )
         }
+        val onDemand = rows.filter { it.isOnDemand }.map { dep ->
+            TimetableEntry.OnDemand(dep, isPast = isToday && (dep.endMinute ?: dep.minute) < now)
+        }
+        val entries = (hours + onDemand).sortedBy {
+            when (it) {
+                is TimetableEntry.Hour -> it.hour * 60
+                is TimetableEntry.OnDemand -> it.departure.minute
+            }
+        }
+        val focusIndex = if (isToday) entries.indexOfFirst { entry ->
+            when (entry) {
+                is TimetableEntry.Hour -> entry.cells.any { !it.isPast }
+                is TimetableEntry.OnDemand -> !entry.isPast
+            }
+        }.takeIf { it >= 0 } else null
 
         return TimetableUiState(
             isLoading = false,
@@ -106,11 +118,9 @@ class TimetableViewModel @Inject constructor(
             selectedDayType = dayType,
             directions = directions,
             selectedDirection = direction,
-            onDemand = rows.filter { it.isOnDemand },
-            hours = hourRows,
-            isCompact = hourRows.isNotEmpty() && hourRows.all { it.cells.size <= COMPACT_MAX_PER_HOUR },
+            entries = entries,
+            focusIndex = focusIndex,
             notes = fixed.filter { it.note != null },
-            isToday = isToday,
         )
     }
 
@@ -118,9 +128,5 @@ class TimetableViewModel @Inject constructor(
         val from = formatShortDate(timetable.validFrom) ?: return null
         val to = formatShortDate(timetable.validTo) ?: return null
         return "$from – $to"
-    }
-
-    private companion object {
-        const val COMPACT_MAX_PER_HOUR = 2
     }
 }

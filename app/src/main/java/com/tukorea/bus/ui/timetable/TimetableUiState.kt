@@ -10,7 +10,19 @@ data class TimeCell(
     val isNext: Boolean,
 )
 
-data class HourRow(val hour: Int, val cells: List<TimeCell>)
+/** 시간표 목록의 한 줄. 정시 출발은 시간대별로 묶고, 수시운행 구간은 그 시각 자리에 한 줄로 끼운다. */
+sealed interface TimetableEntry {
+    val key: String
+
+    data class Hour(val hour: Int, val cells: List<TimeCell>) : TimetableEntry {
+        override val key = "h-$hour"
+        val isPast: Boolean get() = cells.all { it.isPast }
+    }
+
+    data class OnDemand(val departure: Departure, val isPast: Boolean) : TimetableEntry {
+        override val key = "od-${departure.minute}"
+    }
+}
 
 data class TimetableUiState(
     val isLoading: Boolean = true,
@@ -20,11 +32,8 @@ data class TimetableUiState(
     val selectedDayType: DayType = DayType.WEEKDAY,
     val directions: List<ShuttleDirection> = emptyList(),
     val selectedDirection: ShuttleDirection? = null,
-    val onDemand: List<Departure> = emptyList(),
-    val hours: List<HourRow> = emptyList(),
-    /** 시간마다 1~2대뿐인 노선은 시간대로 묶지 않고 한 덩어리로 보여 준다(빈 줄이 늘어나지 않게). */
-    val isCompact: Boolean = false,
+    val entries: List<TimetableEntry> = emptyList(),
+    /** 처음 보여 줄 줄(다음 출발이 있는 시간대). 오늘이 아니거나 운행이 끝났으면 null. */
+    val focusIndex: Int? = null,
     val notes: List<Departure> = emptyList(),
-    /** 고른 요일이 오늘이면 지난 시간과 다음 시간을 표시한다. */
-    val isToday: Boolean = false,
 )
