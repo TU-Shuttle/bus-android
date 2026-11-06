@@ -21,7 +21,7 @@ retrofit = "3.0.0"
 naverMapSdk = "3.23.0"
 playServicesLocation = "21.3.0"
 # Compose
-composeBom = "2024.12.01"
+composeBom = "2025.08.00"
 composeNavigation = "2.9.0"
 hiltNavigationCompose = "1.2.0"
 accompanistPermissions = "0.34.0"

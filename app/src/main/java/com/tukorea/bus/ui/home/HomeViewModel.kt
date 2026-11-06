@@ -1,123 +1,150 @@
 package com.tukorea.bus.ui.home
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.tukorea.bus.domain.usecase.GetNextReservationUseCase
-import com.tukorea.bus.domain.usecase.GetNotificationsUseCase
-import com.tukorea.bus.domain.usecase.GetUnreadImportantNotificationsUseCase
-import com.tukorea.bus.ui.common.ErrorMapper
-import com.tukorea.bus.ui.common.collectWithUiState
+import com.tukorea.bus.domain.model.LiveBus
+import com.tukorea.bus.domain.repository.RouteRepository
+import com.tukorea.bus.domain.usecase.TrackBusUseCase
+import com.tukorea.bus.domain.model.ServiceMoment
+import com.tukorea.bus.domain.model.ShuttleDirection
+import com.tukorea.bus.domain.model.Timetable
+import com.tukorea.bus.domain.usecase.GetUpcomingDeparturesUseCase
+import com.tukorea.bus.domain.usecase.ObserveLiveBusesUseCase
+import com.tukorea.bus.domain.usecase.ObserveServiceMomentUseCase
+import com.tukorea.bus.domain.usecase.ObserveTimetableUseCase
+import com.tukorea.bus.domain.usecase.RefreshTimetableUseCase
+import com.tukorea.bus.domain.usecase.SuggestDirectionUseCase
+import com.tukorea.bus.domain.util.AppResult
+import com.tukorea.bus.domain.util.Result
+import com.tukorea.bus.ui.common.formatShortDate
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.scan
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/**
- * 홈 화면의 다음 예약 정보와 중요 알림 배너 상태를 관리하는 ViewModel.
- */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val getNextReservationUseCase: GetNextReservationUseCase,
-    private val getNotificationsUseCase: GetNotificationsUseCase,
-    private val getUnreadImportantNotificationsUseCase: GetUnreadImportantNotificationsUseCase,
-    private val errorMapper: ErrorMapper
+    observeTimetable: ObserveTimetableUseCase,
+    observeMoment: ObserveServiceMomentUseCase,
+    observeLiveBuses: ObserveLiveBusesUseCase,
+    private val refreshTimetable: RefreshTimetableUseCase,
+    private val getUpcoming: GetUpcomingDeparturesUseCase,
+    private val suggestDirection: SuggestDirectionUseCase,
+    private val routes: RouteRepository,
+    private val trackBus: TrackBusUseCase,
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(HomeUiState())
-    val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
+    private data class Local(
+        val isRefreshing: Boolean = true,
+        val refreshFailed: Boolean = false,
+        val selected: ShuttleDirection? = null,
+        val selectedBusId: String? = null,
+    )
 
-    private companion object {
-        private const val TAG = "HomeViewModel"
-    }
+    /** 버스별 지금 위치와 그 직전 위치(방향·속도 계산용). */
+    private data class LiveHistory(
+        val result: AppResult<List<LiveBus>>? = null,
+        val previous: Map<String, LiveBus> = emptyMap(),
+    )
+
+    private val local = MutableStateFlow(Local())
+
+    private val liveBuses: StateFlow<LiveHistory> =
+        observeLiveBuses()
+            .scan(LiveHistory()) { acc, result ->
+                val before = (acc.result as? Result.Success)?.data.orEmpty().associateBy { it.id }
+                val now = (result as? Result.Success)?.data ?: return@scan acc.copy(result = result)
+                // 새 위치가 왔을 때만 직전 위치를 바꾼다(같은 위치를 다시 받으면 유지).
+                val previous = now.mapNotNull { bus ->
+                    val last = before[bus.id]
+                    val prev = if (last != null && last.updatedAtMillis != bus.updatedAtMillis) last else acc.previous[bus.id]
+                    prev?.let { bus.id to it }
+                }.toMap()
+                LiveHistory(result, previous)
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), LiveHistory())
+
+    val uiState: StateFlow<HomeUiState> =
+        combine(observeTimetable(), observeMoment(), local, liveBuses) { timetable, moment, local, live ->
+            buildState(timetable, moment, local, live)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), HomeUiState())
 
     init {
-        Log.d(TAG, "초기화: 다음 예약과 중요 알림을 불러옵니다.")
-        loadNextReservation()
-        observeImportantNotifications()
+        refresh()
     }
 
-    /**
-     * 다음 예약 정보를 불러와 UI 상태를 업데이트합니다.
-     * - 로딩 중/성공/실패에 따라 로딩 플래그와 에러 메시지를 관리합니다.
-     */
-    private fun loadNextReservation() {
-        Log.d(TAG, "다음 예약 불러오기 시작")
+    fun refresh() {
         viewModelScope.launch {
-            getNextReservationUseCase()
-                .collectWithUiState(
-                    state = _uiState,
-                    onStart = { state ->
-                        state.copy(isLoading = true, error = null)
-                    },
-                    onError = { state, throwable ->
-                        val message = errorMapper.run { throwable.toUserMessage() }
-                        Log.w(TAG, "다음 예약 불러오기 실패: 메시지=$message", throwable)
-                        state.copy(
-                        isLoading = false,
-                            error = message
-                    )
-                    },
-                    onSuccess = { state, reservation ->
-                        Log.d(TAG, "다음 예약 불러오기 성공: 예약=$reservation")
-                        state.copy(
-                        nextReservation = reservation,
-                        isLoading = false,
-                        error = null
-                    )
-                }
-                )
+            local.update { it.copy(isRefreshing = true) }
+            val result = refreshTimetable()
+            local.update { it.copy(isRefreshing = false, refreshFailed = result is Result.Error) }
         }
     }
 
-    /**
-     * 홈 화면에서 사용하는 모달(bottom sheet)의 현재 높이 상태를 갱신합니다.
-     *
-     * @param height 현재 모달의 높이(열림/반쯤/닫힘 등)를 나타내는 값
-     */
-    fun updateModalHeight(height: ModalHeight) {
-        Log.d(TAG, "모달 높이 변경: $height")
-        _uiState.value = _uiState.value.copy(modalHeight = height)
+    fun selectDirection(direction: ShuttleDirection) {
+        local.update { it.copy(selected = direction) }
     }
 
-    /**
-     * 중요 알림(공지) 스트림을 구독하여, 읽지 않은 중요 알림 배너 표시 여부를 관리합니다.
-     * - 스트림 구독만 수행하며, 별도의 수동 갱신 호출은 필요 없습니다.
-     */
-    private fun observeImportantNotifications() {
-        Log.d(TAG, "중요 알림 관찰 시작")
-        viewModelScope.launch {
-            getNotificationsUseCase()
-                .collectWithUiState(
-                    state = _uiState,
-                    onStart = { state ->
-                        // 로딩 상태는 모달/예약에서 사용하므로 알림 배너에는 영향 주지 않음
-                        state
-                    },
-                    onError = { state, throwable ->
-                        val message = errorMapper.run { throwable.toUserMessage() }
-                        Log.w(TAG, "중요 알림 관찰 중 오류: 메시지=$message", throwable)
-                        // 오류가 발생해도 알림 배너는 표시하지 않음
-                        state.copy(
-                            hasUnreadImportantNotice = false,
-                            firstUnreadImportantNoticeId = null
-                        )
-                    },
-                    onSuccess = { state, notifications ->
-                        val result = getUnreadImportantNotificationsUseCase(notifications)
-                        Log.d(
-                            TAG,
-                            "읽지 않은 중요 알림: 있음=${result.hasUnreadImportant}, ID=${result.firstUnreadImportantId}"
-                        )
+    fun selectBus(id: String) {
+        local.update { it.copy(selectedBusId = id) }
+    }
 
-                        state.copy(
-                            hasUnreadImportantNotice = result.hasUnreadImportant,
-                            firstUnreadImportantNoticeId = result.firstUnreadImportantId
-                        )
-                    }
-                )
+    fun clearSelectedBus() {
+        local.update { it.copy(selectedBusId = null) }
+    }
+
+    private fun buildState(
+        timetable: Timetable?,
+        moment: ServiceMoment,
+        local: Local,
+        history: LiveHistory,
+    ): HomeUiState {
+        val live = history.result
+        val liveList = (live as? Result.Success)?.data.orEmpty()
+        val liveFailed = live is Result.Error
+        if (timetable == null) {
+            return HomeUiState(
+                isLoading = local.isRefreshing,
+                loadFailed = !local.isRefreshing && local.refreshFailed,
+                liveBuses = liveList,
+                liveUnavailable = liveFailed,
+            )
         }
+
+        val directions = moment.dayType?.let { timetable.directionsOn(it, moment.isoDayOfWeek) }.orEmpty()
+        val selected = local.selected?.takeIf { it in directions } ?: suggestDirection(timetable, moment)
+        val route = selected?.let(routes::routeOf)
+        // 기사가 다른 노선(예: 반대 방향)을 고른 버스는 이 노선 화면에 띄우지 않는다.
+        val onRoute = liveList.filter { it.isOn(selected) }
+        val tracking = onRoute.associate { bus -> bus.id to trackBus(bus, history.previous[bus.id], route) }
+        return HomeUiState(
+            isLoading = false,
+            directions = directions,
+            selectedDirection = selected,
+            upcoming = selected?.let { getUpcoming(timetable, it, moment) },
+            nowMinute = moment.minuteOfDay,
+            outOfPeriod = if (timetable.isValidOn(moment.isoDate)) null else periodLabel(timetable),
+            liveBuses = onRoute,
+            liveUnavailable = liveFailed,
+            route = route,
+            headings = tracking.mapNotNull { (id, t) -> t.headingDegrees?.let { id to it } }.toMap(),
+            selectedBus = local.selectedBusId?.let(tracking::get),
+        )
+    }
+
+    private fun periodLabel(timetable: Timetable): String? {
+        val from = formatShortDate(timetable.validFrom) ?: return null
+        val to = formatShortDate(timetable.validTo) ?: return null
+        return "$from – $to"
+    }
+
+    private companion object {
+        const val STOP_TIMEOUT_MS = 5_000L
     }
 }

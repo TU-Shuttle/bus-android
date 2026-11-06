@@ -1,7 +1,6 @@
 package com.tukorea.bus.domain.util
 
 import com.tukorea.bus.domain.error.AppError
-import com.tukorea.bus.domain.error.MapError
 
 /**
  * 비즈니스 로직의 실행 결과를 나타내는 sealed class
@@ -30,5 +29,4 @@ sealed class Result<out T, out E> {
 }
 
 typealias AppResult<T> = Result<T, AppError>
-typealias MapResult<T> = Result<T, MapError>
 

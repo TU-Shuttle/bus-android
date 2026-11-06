@@ -1,181 +1,122 @@
 <resources>
-    <string name="app_name">bus</string>
+    <string name="app_name">TU Shuttle</string>
 
-    <!-- Home 화면 -->
-    <string name="home_notification_icon_cd">알림</string>
+    <!-- 탭 -->
+    <string name="tab_home">홈</string>
+    <string name="tab_timetable">시간표</string>
+    <string name="tab_info">정보</string>
 
-    <string name="home_notice_title">공지사항</string>
-    <string name="home_notice_subtitle">셔틀버스 운행 시간 변경 안내</string>
+    <!-- 정류장 -->
+    <string name="stop_jeongwang_station">정왕역</string>
+    <string name="stop_campus1">본교</string>
+    <string name="stop_campus1_west_gate">본교 서문</string>
+    <string name="stop_campus2">제2캠퍼스</string>
+    <string name="stop_oido_station">오이도역</string>
+    <string name="weekday_short_names">월,화,수,목,금,토,일</string>
+    <string name="timetable_only_days">%1$s만 운행</string>
+    <string name="stop_boarding_jeongwang_station">정왕역 꽃집 앞</string>
+    <string name="stop_boarding_campus1">본교 산융관 앞</string>
+    <string name="stop_boarding_campus1_west_gate">본교 운동장 옆 서문 정류장</string>
+    <string name="stop_boarding_campus2">제2캠퍼스 정류장</string>
 
-    <string name="home_next_reservation_title">다음 예약</string>
-    <string name="home_next_reservation_a11y">다음 예약: %1$s, %2$s에서 %3$s로</string>
+    <!-- 방향 -->
+    <string name="direction_label">%1$s → %2$s</string>
+    <string name="direction_via_label">%1$s → 본교 → %2$s</string>
 
-    <string name="home_no_reservation_title">다음 예약이 없습니다</string>
-    <string name="home_no_reservation_subtitle">일정을 예약하고 편리하게 이용하세요</string>
-    <string name="home_reserve_button">예약하기</string>
+    <!-- 요일 -->
+    <string name="day_type_weekday">평일</string>
+    <string name="day_type_saturday">토요일</string>
 
-    <string name="home_quick_ride_label">빠른 탑승</string>
-    <string name="home_quick_ride_subtitle">지금 바로 타기</string>
-    <string name="home_reservation_label">예약하기</string>
-    <string name="home_reservation_subtitle">미리 예약</string>
+    <!-- 홈 -->
+    <string name="home_where_to">어디로 가세요?</string>
+    <string name="home_next_shuttle">다음 셔틀</string>
+    <string name="home_on_demand_now">지금 수시로 운행 중</string>
+    <string name="home_on_demand_title">수시운행</string>
+    <string name="home_on_demand_until">%1$s까지 수시로 와요</string>
+    <string name="home_minutes_left_value">%1$d</string>
+    <string name="home_minutes_left_unit">분 후</string>
+    <string name="home_departing_now">곧 출발해요</string>
+    <string name="home_depart_at">%1$s 출발</string>
+    <string name="home_depart_unit">출발</string>
+    <string name="home_in_hours">%1$d시간 후</string>
+    <string name="home_board_at">%1$s에서 타요</string>
+    <string name="home_later">다음 %1$s</string>
+    <string name="home_finished_title">오늘 운행이 끝났어요</string>
+    <string name="home_finished_first">첫차는 %1$s이에요</string>
+    <string name="home_no_service_title">오늘은 운행하지 않아요</string>
+    <string name="home_no_service_body">셔틀은 평일과 토요일에만 다녀요.</string>
+    <string name="home_view_timetable">시간표 보기</string>
+    <string name="home_out_of_period">시간표 적용 기간(%1$s)이 아니에요. 방학 중엔 운행이 다를 수 있어요.</string>
+    <string name="live_running">운행 중 %1$d대</string>
+    <string name="live_waiting">대기 %1$d대</string>
+    <string name="live_tap_hint">버스를 누르면 따라가요</string>
+    <string name="bus_detail_with_number">%1$d호차 · %2$s</string>
+    <string name="bus_detail_running">운행 중</string>
+    <string name="bus_detail_waiting">잠시 대기 중</string>
+    <string name="bus_detail_stopped">운행 종료</string>
+    <string name="bus_detail_eta">%1$s까지 약 %2$d분</string>
+    <string name="bus_detail_arriving">곧 %1$s 도착</string>
+    <string name="bus_detail_off_route">이 노선 밖을 달리고 있어요</string>
+    <string name="bus_detail_remaining">남은 거리</string>
+    <string name="bus_detail_speed">현재 속도</string>
+    <string name="bus_detail_speed_value">%1$dkm/h</string>
+    <string name="bus_detail_unknown">확인 중</string>
+    <string name="bus_detail_updated">위치 갱신</string>
+    <string name="bus_detail_just_now">방금</string>
+    <string name="bus_detail_seconds_ago">%1$d초 전</string>
+    <string name="bus_detail_meters">%1$dm</string>
+    <string name="bus_detail_km">%1$skm</string>
+    <string name="bus_detail_estimate_note">도착 시간은 지금 속도로 계산한 어림값이에요.</string>
+    <string name="action_close">닫기</string>
+    <string name="live_none">지금 운행 중인 버스가 없어요</string>
+    <string name="live_unavailable">실시간 위치를 불러오지 못했어요</string>
+    <string name="home_no_timetable_title">시간표를 불러오지 못했어요</string>
+    <string name="home_no_timetable_body">인터넷 연결을 확인하고 다시 시도해 주세요.</string>
+    <string name="action_retry">다시 시도</string>
 
-    <string name="home_realtime_info_title">실시간 도착 정보</string>
-    <string name="home_realtime_running">운행중</string>
-    <string name="home_realtime_waiting">대기중</string>
-    <string name="home_realtime_bus_count">%1$d대</string>
-    <string name="home_realtime_view_location">실시간 위치 보기</string>
+    <!-- 시간표 -->
+    <string name="timetable_title">시간표</string>
+    <string name="timetable_period">%1$s · %2$s</string>
+    <string name="timetable_past_count">지난 출발 %1$d개</string>
+    <string name="timetable_this_shuttle">이번 셔틀</string>
+    <string name="timetable_running_now">지금 수시운행</string>
+    <string name="timetable_finished_today">오늘 운행이 끝났어요</string>
+    <string name="timetable_departing_now">곧 출발</string>
+    <string name="timetable_in_minutes">%1$d분 후</string>
+    <string name="timetable_in_hours">%1$d시간 후</string>
+    <string name="timetable_in_hours_minutes">%1$d시간 %2$d분 후</string>
+    <string name="timetable_empty">이 요일에는 운행하지 않아요</string>
 
-    <string name="home_realtime_view_location_a11y">실시간 위치 보기</string>
+    <!-- 정보 -->
+    <string name="info_title">정보</string>
+    <string name="info_section_stops">탑승 장소</string>
+    <string name="info_stop_jeongwang_body">꽃집 앞에서 출발해요. 17시 이후 등교 셔틀은 파리바게뜨 건너편 하차장소(버스정류장)에서 도착한 버스를 타요.</string>
+    <string name="info_stop_campus1_body">산융관 앞 정류장이에요. 정왕역·제2캠퍼스 방향 승차장이 같아요.</string>
+    <string name="info_stop_west_gate_body">운동장 옆(서문) 버스정류장이에요. 정왕역과 제2캠퍼스를 잇는 경유 노선이 여기서 타고 내려요.</string>
+    <string name="info_stop_campus2_body">본교와 정왕역으로 가는 셔틀이 출발해요.</string>
+    <string name="info_stop_oido_body">제2캠퍼스 17:40 출발 셔틀이 본교를 거치지 않고 여기로 바로 가요.</string>
+    <string name="info_contact_early_name">조기취업학부 교학팀 (제2캠퍼스 셔틀)</string>
+    <string name="info_contact_early_phone">031-8041-1462</string>
+    <string name="info_section_notice">이용 안내</string>
+    <string name="info_notice_crowded">혼잡할 때는 외부인 탑승이 제한될 수 있어요.</string>
+    <string name="info_notice_drink">음료를 들고 타지 마세요.</string>
+    <string name="info_notice_traffic">평소 10분 정도 걸리고, 퇴근 시간대에는 20~30분 걸릴 수 있어요.</string>
+    <string name="info_section_contact">문의</string>
+    <string name="info_contact_name">학생생활복지센터</string>
+    <string name="info_contact_phone">031-8041-0082</string>
+    <string name="info_section_source">시간표 출처</string>
+    <string name="info_source_body">학교 홈페이지 셔틀버스 시간표를 서버가 매일 확인해 반영해요.</string>
+    <string name="info_source_open">학교 홈페이지에서 보기</string>
+    <string name="info_source_updated">마지막 확인 %1$s</string>
+    <string name="info_route_attribution">지도 위 노선 경로는 OpenStreetMap 도로 데이터로 만든 근사값이에요. © OpenStreetMap 기여자</string>
+    <string name="info_version">버전 %1$s</string>
 
-    <!-- Map 화면 -->
-    <string name="map_my_location_cd">현재 위치</string>
+    <!-- 오류 -->
+    <string name="error_network">인터넷에 연결할 수 없어요</string>
+    <string name="error_not_found">해당 셔틀을 찾을 수 없어요. 시간표가 바뀌었을 수 있어요.</string>
+    <string name="error_unknown">알 수 없는 문제가 생겼어요</string>
 
-    <!-- 버스 정류장 모달 -->
-    <string name="bus_stop_running_buses_title">운행 버스 정보</string>
-    <string name="bus_stop_no_buses">현재 운행 중인 버스가 없습니다</string>
-    <string name="bus_stop_view_timetable">전체 시간표 보기</string>
-    <string name="bus_stop_close_cd">닫기</string>
-    <string name="bus_stop_arrival_time">도착 예정: %1$s</string>
-    <string name="bus_stop_destination">목적지: %1$s</string>
-    <string name="bus_stop_status_running">운행</string>
-    <string name="bus_stop_status_waiting">대기</string>
-    <string name="bus_stop_status_finished">운행 종료</string>
-
-    <!-- 버스 탑승 확인 -->
-    <string name="bus_ride_confirm_title">탑승하시겠습니까?</string>
-    <string name="bus_ride_confirm_message">%1$s · %2$s 출발\n목적지: %3$s</string>
-    <string name="bus_ride_alarm_reserved">알람이 예약되었습니다</string>
-
-    <!-- Notifications 화면 -->
-    <string name="notifications_title">알림</string>
-    <string name="notifications_subtitle">공지사항 및 운행 안내</string>
-    <string name="notifications_mark_all_read">모두 읽음</string>
-    <string name="notifications_mark_all_read_a11y">모든 알림을 읽음 상태로 표시</string>
-    <string name="notification_detail_title">알림 상세</string>
-    <string name="notification_detail_back_cd">뒤로 가기</string>
-    <string name="notification_not_found">알림을 찾을 수 없습니다</string>
-    <string name="notification_type_warning">중요 공지</string>
-    <string name="notification_type_bus">버스 운행</string>
-    <string name="notification_type_info">일반 안내</string>
-    <string name="notification_type_success">예약 안내</string>
-    <string name="notification_type_system">시스템</string>
-    <string name="notification_important_notice">이 알림은 중요 공지사항입니다. 반드시 확인해주세요.</string>
-
-    <!-- QuickRide 화면 -->
-    <string name="quickride_title">바로 탑승</string>
-    <string name="quickride_subtitle">현재 위치에서 바로 탑승</string>
-    <string name="quickride_current_location_label">현재 위치</string>
-    <string name="quickride_destination_label">목적지</string>
-    <string name="quickride_view_full_timetable">전체 시간표 보기</string>
-    <string name="quickride_available_buses_title">이용 가능한 버스</string>
-    <string name="quickride_available_buses_count">%1$d개 노선</string>
-    <string name="quickride_no_running_bus_title">운행 중인 버스가 없습니다</string>
-    <string name="quickride_timetable_title">셔틀버스 시간표</string>
-    <string name="quickride_timetable_subtitle">평일 운행 기준</string>
-    <string name="quickride_timetable_close_cd">닫기</string>
-    <string name="quickride_morning">오전</string>
-    <string name="quickride_morning_abbrev">AM</string>
-    <string name="quickride_afternoon">오후</string>
-    <string name="quickride_afternoon_abbrev">PM</string>
-    <string name="quickride_timetable_runs">%1$d회 운행</string>
-    <string name="quickride_operation_info_title">운행 안내</string>
-    <string name="quickride_operation_info_body">• 주말 및 공휴일은 운행하지 않습니다\n• 점심시간(12:00~13:00)은 운행하지 않습니다\n• 기상 상황에 따라 운행이 변경될 수 있습니다</string>
-
-    <!-- Ride (버스 탑승시)  화면 -->
-    <string name="ride_my_location_cd">현재 위치</string>
-    <string name="ride_arrival_in_minutes">%1$d분 후 도착</string>
-    <string name="ride_arrival_soon">곧 도착</string>
-    <string name="ride_boarding_station">탑승정류장</string>
-    <string name="ride_bus_title">셔틀버스</string>
-    <string name="ride_bus_route_label">A노선</string>
-    <string name="ride_status_button">상태</string>
-    <string name="ride_home_button">셔틀버스 홈으로</string>
-
-    <!-- Calendar 화면 -->
-    <string name="calendar_title">예약하기</string>
-    <string name="calendar_subtitle">반복 일정으로 편리하게</string>
-    <string name="calendar_select_days_title">요일을 선택해주세요</string>
-    <string name="calendar_from_label">출발지</string>
-    <string name="calendar_to_label">도착지</string>
-    <string name="calendar_select_time_title">시간 선택</string>
-    <string name="calendar_day_selected_a11y">%1$s 선택됨</string>
-    <string name="calendar_day_select_a11y">%1$s 선택</string>
-    <string name="calendar_time_selected_a11y">%1$s %2$s 선택됨</string>
-    <string name="calendar_time_select_a11y">%1$s %2$s 선택</string>
-    <string name="calendar_edit_label">수정</string>
-    <string name="calendar_delete_label">삭제</string>
-    <string name="calendar_add_button">예약 추가</string>
-    <string name="calendar_edit_complete_button">수정 완료</string>
-    <string name="calendar_reserved_title">예정된 예약 (%1$d)</string>
-    <string name="calendar_reserved_empty">예약된 일정이 없습니다</string>
-    <string name="calendar_delete_title">예약 삭제</string>
-    <string name="calendar_delete_message">정말 이 예약을 삭제하시겠습니까?\n삭제된 예약은 복구할 수 없습니다.</string>
-    <string name="common_delete">삭제</string>
-    <string name="common_cancel">취소</string>
-    <string name="common_confirm">확인</string>
-    
-    <!-- Calendar Validation 에러 메시지 -->
-    <string name="calendar_error_select_day_first">먼저 요일을 선택해주세요</string>
-    <string name="calendar_error_same_route">출발지와 도착지가 같습니다</string>
-    <string name="calendar_error_select_day">요일을 선택해주세요</string>
-    <string name="calendar_error_select_time">시간을 선택해주세요</string>
-
-    <!-- Stations 화면 -->
-    <string name="stations_title">정류장 안내</string>
-    <string name="stations_subtitle">노선별 정류장 확인</string>
-    <string name="stations_refresh_cd">새로고침</string>
-    <string name="stations_current_route_label">현재 노선</string>
-    <string name="stations_interval_label">운행 간격</string>
-
-    <!-- 정류장 아이템 접근성/텍스트 -->
-    <string name="stations_station_a11y">%1$s 정류장, 다음 버스 %2$s</string>
-    <string name="stations_item_a11y">%1$s 정류장, 다음 버스 %2$s</string>
-    <string name="stations_next_bus_prefix">다음 버스: %1$s</string>
-    <string name="stations_next_bus">다음 버스: %1$s</string>
-    <string name="stations_arriving_soon_badge">곧 도착</string>
-    <string name="stations_arriving_soon">곧 도착</string>
-
-    <!-- 정류장 상세 모달 -->
-    <string name="stations_next_bus_title">다음 버스 도착</string>
-    <string name="stations_later_bus_title">이후 도착 예정</string>
-    <string name="stations_later_arrivals_title">이후 도착 예정</string>
-    <string name="stations_notify_title">도착 알림 받기</string>
-    <string name="stations_alert_title">도착 알림 받기</string>
-    <string name="stations_notify_subtitle">버스 도착 5분 전 알림</string>
-    <string name="stations_alert_subtitle">버스 도착 5분 전 알림</string>
-    <string name="stations_board_here_button">이 정류장에서 탑승하기</string>
-
-    <!-- Temp 화면 -->
-    <string name="temp_load_button">Load Temp</string>
-    <string name="temp_error_prefix">에러: %1$s</string>
-    <string name="temp_empty">결과가 없습니다</string>
-
-    <!-- Settings 화면 -->
-    <string name="settings_title">설정</string>
-    <string name="settings_section_notification">알림</string>
-    <string name="settings_push_title">푸시 알림</string>
-    <string name="settings_push_subtitle">버스 도착 알림을 받습니다</string>
-    <string name="settings_reservation_title">예약 알림</string>
-    <string name="settings_reservation_subtitle">예약된 시간 10분 전 알림</string>
-    <string name="settings_section_etc">기타</string>
-    <string name="settings_help_title">도움말</string>
-
-    <!-- 공통 에러 메시지 -->
-    <string name="error_network">인터넷 연결을 확인하고 다시 시도해볼 수 있어요</string>
-    <string name="error_unknown">잠시 후 다시 시도해볼 수 있어요</string>
-    <string name="error_generic">잠시 후 다시 시도해볼 수 있어요</string>
-
-    <!-- 위치/지도 관련 에러 -->
-    <string name="error_location_not_found">위치를 찾을 수 없어요. GPS를 켜고 다시 시도해볼 수 있어요</string>
-    <string name="error_location_permission">위치 정보를 사용하려면 권한이 필요해요. 설정에서 권한을 허용해주세요</string>
-    <string name="error_location_timeout">위치를 찾는 데 시간이 걸려요. 잠시 후 다시 시도해볼 수 있어요</string>
-
-    <!-- 예외 기반 에러 -->
-    <string name="error_timeout">응답이 지연되고 있어요. 잠시 후 다시 시도해볼 수 있어요</string>
-
-    <!-- 위치 추적 서비스 -->
-    <string name="location_tracking_channel_name">위치 추적</string>
-    <string name="location_tracking_channel_description">백그라운드에서 현재 위치를 추적합니다</string>
-    <string name="location_tracking_notification_title">셔틀버스 위치 추적 중</string>
-    <string name="location_tracking_notification_text">근처 정류장 및 버스 위치를 확인하고 있습니다</string>
+    <!-- 접근성 -->
+    <string name="a11y_bus_marker">셔틀 버스</string>
+    <string name="a11y_locate_me">내 위치로 이동</string>
 </resources>

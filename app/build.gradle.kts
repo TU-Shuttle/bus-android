@@ -25,9 +25,19 @@ fun getEnv(key: String): String {
     return envVars[key] ?: System.getenv(key) ?: ""
 }
 
-val baseUrl = getEnv("BASE_URL")
-    .ifBlank { "http://10.0.2.2:8080/" }
-    .let { if (it.endsWith('/')) it else "$it/" }
+fun String.withTrailingSlash(): String = if (endsWith('/')) this else "$this/"
+
+val configuredBaseUrl = getEnv("BASE_URL")
+// debug 빌드는 에뮬레이터 기본값을 허용하고, release 빌드는 명시한 BASE_URL만 사용한다.
+val debugBaseUrl = configuredBaseUrl.ifBlank { "http://10.0.2.2:8080/" }.withTrailingSlash()
+val releaseBaseUrl = configuredBaseUrl.withTrailingSlash()
+
+gradle.taskGraph.whenReady {
+    val buildsRelease = allTasks.any { it.project == project && it.name.contains("Release") }
+    if (buildsRelease && configuredBaseUrl.isBlank()) {
+        throw GradleException("release 빌드에는 BASE_URL(.env 또는 환경변수)이 필요합니다.")
+    }
+}
 
 android {
     namespace = "com.tukorea.bus"
@@ -38,7 +48,7 @@ android {
         minSdk = 25
         targetSdk = 36
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["naverMapClientId"] = getEnv("NAVER_MAP_CLIENT_ID")
@@ -46,11 +56,11 @@ android {
 
     buildTypes {
         debug {
-            buildConfigField("String", "BASE_URL", "\"$baseUrl\"")
+            buildConfigField("String", "BASE_URL", "\"$debugBaseUrl\"")
         }
         release {
             isMinifyEnabled = false
-            buildConfigField("String", "BASE_URL", "\"$baseUrl\"")
+            buildConfigField("String", "BASE_URL", "\"$releaseBaseUrl\"")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

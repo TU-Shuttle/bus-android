@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 버스 진행 방향 화살표. 버스 마커(지름 40dp)와 중심을 맞춘 68dp 캔버스의 위쪽, 원 바깥에 삼각형만 그린다. 마커를 돌려 방향을 나타낸다. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="68dp"
+    android:height="68dp"
+    android:viewportWidth="68"
+    android:viewportHeight="68">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M34,0L45,14L23,14Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M34,3.2L41.4,12.4L26.6,12.4Z" />
+</vector>
