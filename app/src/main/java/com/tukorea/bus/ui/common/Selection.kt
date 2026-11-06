@@ -1,5 +1,9 @@
 package com.tukorea.bus.ui.common
 
+import androidx.compose.runtime.LaunchedEffect
+
+import androidx.compose.foundation.lazy.rememberLazyListState
+
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -63,7 +67,18 @@ fun DirectionPicker(
     /** 회색 배경 위에 놓일 땐 surface(흰색)로 바꿔야 버튼 경계가 보인다. */
     unselectedColor: Color = MaterialTheme.colorScheme.surfaceVariant,
 ) {
+    val listState = rememberLazyListState()
+    // 고른 노선 버튼이 화면 밖에 있으면(자동 추천, 다른 탭에서 바꿈 등) 보이게 굴린다.
+    LaunchedEffect(selected, directions) {
+        val index = directions.indexOf(selected).takeIf { it >= 0 } ?: return@LaunchedEffect
+        val info = listState.layoutInfo
+        val item = info.visibleItemsInfo.firstOrNull { it.index == index }
+        val fullyVisible = item != null && item.offset >= info.viewportStartOffset &&
+            item.offset + item.size <= info.viewportEndOffset
+        if (!fullyVisible) listState.animateScrollToItem(index)
+    }
     LazyRow(
+        state = listState,
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = contentPadding,

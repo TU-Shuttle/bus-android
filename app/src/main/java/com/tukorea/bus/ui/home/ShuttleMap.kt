@@ -36,6 +36,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
@@ -101,6 +103,7 @@ fun ShuttleMap(
     val busMarkers = remember { mutableStateMapOf<String, Marker>() }
     val headingMarkers = remember { mutableStateMapOf<String, Marker>() }
     val routeLine = remember { PathOverlay() }
+    var mapSize by remember { mutableStateOf(IntSize.Zero) }
     val currentOnBusClick by rememberUpdatedState(onBusClick)
     val currentOnMapClick by rememberUpdatedState(onMapClick)
 
@@ -128,7 +131,9 @@ fun ShuttleMap(
 
     Box(modifier = modifier) {
     AndroidView(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .onSizeChanged { mapSize = it },
         factory = {
             mapView.apply {
                 getMapAsync { map ->
@@ -176,8 +181,10 @@ fun ShuttleMap(
     val originCaption = direction?.let { stringResource(it.origin.boardingRes()) }
     val destinationCaption = direction?.let { stringResource(it.destination.nameRes()) }
     // 시트 높이(bottomPaddingPx)가 정해진 뒤에도 다시 맞춰야 정류장이 시트에 가리지 않는다.
-    LaunchedEffect(naverMap, direction, isDark, bottomPaddingPx, topPaddingPx, selectedBusId == null) {
+    LaunchedEffect(naverMap, direction, isDark, bottomPaddingPx, topPaddingPx, selectedBusId == null, mapSize) {
         val map = naverMap ?: return@LaunchedEffect
+        // 지도 뷰 크기가 정해지기 전에 맞추면(탭을 오가며 지도를 새로 만들 때) 줌이 엉뚱하게 잡힌다.
+        if (mapSize.width == 0 || mapSize.height == 0) return@LaunchedEffect
         stopMarkers.forEach { it.map = null }
         stopMarkers.clear()
         direction ?: return@LaunchedEffect
