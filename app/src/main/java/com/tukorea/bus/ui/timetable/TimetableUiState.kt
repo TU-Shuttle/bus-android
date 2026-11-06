@@ -1,6 +1,5 @@
 package com.tukorea.bus.ui.timetable
 
-import com.tukorea.bus.domain.model.DayType
 import com.tukorea.bus.domain.model.Departure
 import com.tukorea.bus.domain.model.ShuttleDirection
 
@@ -23,7 +22,10 @@ data class TimetableUiState(
     val loadFailed: Boolean = false,
     val title: String = "",
     val period: String? = null,
-    val selectedDayType: DayType = DayType.WEEKDAY,
+    /** 고른 요일(1=월 … 6=토). */
+    val selectedDay: Int = 1,
+    /** 오늘 요일. 일요일(운행 없음)이면 null. */
+    val today: Int? = null,
     val directions: List<ShuttleDirection> = emptyList(),
     val selectedDirection: ShuttleDirection? = null,
     /** 지난 출발. 오늘 시간표일 때만 채워지고 기본은 접혀 있다. */

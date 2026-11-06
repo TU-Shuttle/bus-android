@@ -53,6 +53,7 @@ fun LiveBusDto.toDomain(): LiveBus? {
         longitude = lng,
         status = enumOrNull<LiveBusStatus>(status) ?: LiveBusStatus.RUNNING,
         updatedAtMillis = updatedAt ?: 0L,
+        direction = enumOrNull<ShuttleDirection>(direction),
     )
 }
 

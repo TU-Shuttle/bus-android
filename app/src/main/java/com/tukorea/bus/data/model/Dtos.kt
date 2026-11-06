@@ -28,5 +28,7 @@ data class LiveBusDto(
     val lat: Double?,
     val lng: Double?,
     val status: String?,
+    /** 기사가 고른 노선. 예전 기사 앱이면 없다. */
+    val direction: String? = null,
     val updatedAt: Long?,
 )

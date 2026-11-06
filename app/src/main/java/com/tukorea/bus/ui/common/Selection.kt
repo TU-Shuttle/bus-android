@@ -1,5 +1,8 @@
 package com.tukorea.bus.ui.common
 
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.background
 import androidx.compose.runtime.LaunchedEffect
 
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -101,6 +104,8 @@ fun SegmentedControl(
     selectedIndex: Int,
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    /** 이 칸 글자 아래에 작은 점을 찍는다(예: 오늘). */
+    markedIndex: Int? = null,
 ) {
     Surface(
         modifier = modifier
@@ -125,11 +130,17 @@ fun SegmentedControl(
                     color = thumb,
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = option,
-                            style = MaterialTheme.typography.labelLarge,
-                            color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.busColors.textSecondary,
-                        )
+                        val textColor = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.busColors.textSecondary
+                        Text(text = option, style = MaterialTheme.typography.labelLarge, color = textColor)
+                        if (index == markedIndex) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(bottom = 3.dp)
+                                    .size(4.dp)
+                                    .background(textColor, CircleShape),
+                            )
+                        }
                     }
                 }
             }

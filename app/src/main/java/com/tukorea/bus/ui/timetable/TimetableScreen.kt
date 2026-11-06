@@ -37,7 +37,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tukorea.bus.R
-import com.tukorea.bus.domain.model.DayType
 import com.tukorea.bus.domain.model.ShuttleDirection
 import com.tukorea.bus.ui.common.BusButton
 import com.tukorea.bus.ui.common.DirectionPicker
@@ -45,11 +44,11 @@ import com.tukorea.bus.ui.common.EmptyState
 import com.tukorea.bus.ui.common.RowDivider
 import com.tukorea.bus.ui.common.SegmentedControl
 import com.tukorea.bus.ui.common.formatMinute
-import com.tukorea.bus.ui.common.labelRes
 import com.tukorea.bus.ui.common.weekdaysLabel
 import com.tukorea.bus.ui.theme.busColors
 
-private val DAY_TYPES = listOf(DayType.WEEKDAY, DayType.SATURDAY)
+/** 시간표가 있는 요일(월~토). 일요일은 운행하지 않는다. */
+private val DAYS = 1..6
 private val Inset = 24.dp
 private const val RELATIVE_LIMIT_MINUTES = 120
 
@@ -58,7 +57,7 @@ fun TimetableRoute(viewModel: TimetableViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     TimetableScreen(
         state = state,
-        onSelectDayType = viewModel::selectDayType,
+        onSelectDay = viewModel::selectDay,
         onSelectDirection = viewModel::selectDirection,
         onRetry = viewModel::retry,
         onTogglePast = viewModel::togglePast,
@@ -73,13 +72,13 @@ fun TimetableRoute(viewModel: TimetableViewModel = hiltViewModel()) {
 @Composable
 fun TimetableScreen(
     state: TimetableUiState,
-    onSelectDayType: (DayType) -> Unit,
+    onSelectDay: (Int) -> Unit,
     onSelectDirection: (ShuttleDirection) -> Unit,
     onRetry: () -> Unit,
     onTogglePast: () -> Unit,
 ) {
     val listState = rememberLazyListState()
-    LaunchedEffect(state.selectedDirection, state.selectedDayType) { listState.scrollToItem(0) }
+    LaunchedEffect(state.selectedDirection, state.selectedDay) { listState.scrollToItem(0) }
 
     LazyColumn(
         state = listState,
@@ -89,7 +88,7 @@ fun TimetableScreen(
         contentPadding = PaddingValues(bottom = 32.dp),
     ) {
         item(key = "title") {
-            TitleRow(state = state, onSelectDayType = onSelectDayType)
+            TitleRow(state = state, onSelectDay = onSelectDay)
         }
         // 노선 선택은 스크롤해도 위에 붙어 있다.
         stickyHeader(key = "directions") {
@@ -149,31 +148,31 @@ fun TimetableScreen(
 }
 
 @Composable
-private fun TitleRow(state: TimetableUiState, onSelectDayType: (DayType) -> Unit) {
+private fun TitleRow(state: TimetableUiState, onSelectDay: (Int) -> Unit) {
     val subtitle = when {
         state.title.isBlank() -> null
         state.period != null -> stringResource(R.string.timetable_period, state.title, state.period)
         else -> state.title
     }
+    val names = stringResource(R.string.weekday_short_names).split(",")
     Column(modifier = Modifier.padding(start = Inset, end = Inset, top = 24.dp, bottom = 4.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                modifier = Modifier.weight(1f),
-                text = stringResource(R.string.timetable_title),
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
-            SegmentedControl(
-                modifier = Modifier.width(148.dp),
-                options = DAY_TYPES.map { stringResource(it.labelRes()) },
-                selectedIndex = DAY_TYPES.indexOf(state.selectedDayType),
-                onSelect = { onSelectDayType(DAY_TYPES[it]) },
-            )
-        }
+        Text(
+            text = stringResource(R.string.timetable_title),
+            style = MaterialTheme.typography.headlineLarge,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
         if (subtitle != null) {
             Spacer(modifier = Modifier.height(6.dp))
             Text(text = subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.busColors.textSecondary)
         }
+        Spacer(modifier = Modifier.height(16.dp))
+        // 요일을 직접 고른다. 오늘은 점으로 표시하고, 오늘일 때만 남은 시간을 보여 준다.
+        SegmentedControl(
+            options = DAYS.map { names[it - 1] },
+            selectedIndex = DAYS.indexOf(state.selectedDay),
+            onSelect = { onSelectDay(DAYS.elementAt(it)) },
+            markedIndex = state.today?.let { DAYS.indexOf(it) }?.takeIf { it >= 0 },
+        )
     }
 }
 

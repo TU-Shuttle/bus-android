@@ -33,7 +33,8 @@ class TimetableViewModel @Inject constructor(
     private data class Local(
         val isRefreshing: Boolean = false,
         val refreshFailed: Boolean = false,
-        val dayType: DayType? = null,
+        /** 고른 요일(1=월 … 6=토). null이면 오늘(일요일이면 월요일). */
+        val isoDay: Int? = null,
         val direction: ShuttleDirection? = null,
         val showPast: Boolean = false,
     )
@@ -45,8 +46,8 @@ class TimetableViewModel @Inject constructor(
             buildState(timetable, moment, local)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TimetableUiState())
 
-    fun selectDayType(dayType: DayType) {
-        local.update { it.copy(dayType = dayType, direction = null, showPast = false) }
+    fun selectDay(isoDay: Int) {
+        local.update { it.copy(isoDay = isoDay, direction = null, showPast = false) }
     }
 
     fun togglePast() {
@@ -70,24 +71,27 @@ class TimetableViewModel @Inject constructor(
         moment: ServiceMoment,
         local: Local,
     ): TimetableUiState {
-        val dayType = local.dayType ?: moment.dayType ?: DayType.WEEKDAY
+        val today = moment.isoDayOfWeek.takeIf { DayType.of(it) != null }
+        val day = local.isoDay ?: today ?: MONDAY
+        val dayType = DayType.of(day) ?: DayType.WEEKDAY
         if (timetable == null) {
             return TimetableUiState(
                 isLoading = local.isRefreshing,
                 loadFailed = !local.isRefreshing,
-                selectedDayType = dayType,
+                selectedDay = day,
+                today = today,
             )
         }
 
-        val directions = timetable.directionsOn(dayType)
+        val directions = timetable.directionsOn(dayType, day)
         val direction = local.direction?.takeIf { it in directions }
             ?: suggestDirection(timetable, moment)?.takeIf { it in directions }
             ?: directions.firstOrNull()
-        val isToday = moment.dayType == dayType
-        // 오늘 시간표는 오늘 요일에 실제로 운행하는 것만(요일별 운행 반영), 다른 요일을 볼 땐 전부 보여 준다.
+        val isToday = day == today
+        // 고른 요일에 실제로 운행하는 것만(조기취업학부 셔틀 같은 요일별 운행 반영).
         val rows = timetable.departures
             .filter { it.dayType == dayType && it.direction == direction }
-            .filter { !isToday || it.runsOn(moment.isoDayOfWeek) }
+            .filter { it.runsOn(day) }
             .sortedBy { it.minute }
 
         val now = moment.minuteOfDay
@@ -111,13 +115,18 @@ class TimetableViewModel @Inject constructor(
             isLoading = false,
             title = timetable.title,
             period = periodOf(timetable),
-            selectedDayType = dayType,
+            selectedDay = day,
+            today = today,
             directions = directions,
             selectedDirection = direction,
             past = all.filter { it.isPast },
             showPast = local.showPast,
             upcoming = all.filterNot { it.isPast },
         )
+    }
+
+    private companion object {
+        const val MONDAY = 1
     }
 
     private fun periodOf(timetable: Timetable): String? {

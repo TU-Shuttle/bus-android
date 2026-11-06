@@ -120,7 +120,9 @@ class HomeViewModel @Inject constructor(
         val directions = moment.dayType?.let { timetable.directionsOn(it, moment.isoDayOfWeek) }.orEmpty()
         val selected = local.selected?.takeIf { it in directions } ?: suggestDirection(timetable, moment)
         val route = selected?.let(routes::routeOf)
-        val tracking = liveList.associate { bus -> bus.id to trackBus(bus, history.previous[bus.id], route) }
+        // 기사가 다른 노선(예: 반대 방향)을 고른 버스는 이 노선 화면에 띄우지 않는다.
+        val onRoute = liveList.filter { it.isOn(selected) }
+        val tracking = onRoute.associate { bus -> bus.id to trackBus(bus, history.previous[bus.id], route) }
         return HomeUiState(
             isLoading = false,
             directions = directions,
@@ -128,7 +130,7 @@ class HomeViewModel @Inject constructor(
             upcoming = selected?.let { getUpcoming(timetable, it, moment) },
             nowMinute = moment.minuteOfDay,
             outOfPeriod = if (timetable.isValidOn(moment.isoDate)) null else periodLabel(timetable),
-            liveBuses = liveList,
+            liveBuses = onRoute,
             liveUnavailable = liveFailed,
             route = route,
             headings = tracking.mapNotNull { (id, t) -> t.headingDegrees?.let { id to it } }.toMap(),
