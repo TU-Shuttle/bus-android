@@ -5,6 +5,8 @@ import android.content.Context
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -54,6 +56,7 @@ import com.tukorea.bus.ui.common.boardingRes
 import com.tukorea.bus.ui.common.nameRes
 import com.tukorea.bus.ui.theme.Black
 import com.tukorea.bus.ui.theme.White
+import java.util.Locale
 
 private const val CAMERA_PADDING_PX = 160
 private const val CAMERA_ANIMATION_MS = 600L
@@ -74,7 +77,10 @@ fun ShuttleMap(
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val isDark = isSystemInDarkTheme()
-    val bottomPaddingPx = with(LocalDensity.current) { bottomPadding.roundToPx() }
+    val density = LocalDensity.current
+    val bottomPaddingPx = with(density) { bottomPadding.roundToPx() }
+    // 지도는 상태바 밑까지 깔리므로, 정류장이 상태바에 가리지 않게 위쪽도 비워 둔다.
+    val topPaddingPx = WindowInsets.statusBars.getTop(density)
     val busDescription = stringResource(R.string.a11y_bus_marker)
 
     val mapView = remember { MapView(context) }
@@ -117,6 +123,8 @@ fun ShuttleMap(
                         isScaleBarEnabled = false
                         isLocationButtonEnabled = false
                     }
+                    // 기기 언어와 상관없이 한글 지명만 보여준다(영문 병기는 라벨을 두 배로 늘린다).
+                    map.locale = Locale.KOREA
                     naverMap = map
                 }
             }
@@ -152,12 +160,12 @@ fun ShuttleMap(
     val originCaption = direction?.let { stringResource(it.origin.boardingRes()) }
     val destinationCaption = direction?.let { stringResource(it.destination.nameRes()) }
     // 시트 높이(bottomPaddingPx)가 정해진 뒤에도 다시 맞춰야 정류장이 시트에 가리지 않는다.
-    LaunchedEffect(naverMap, direction, isDark, bottomPaddingPx) {
+    LaunchedEffect(naverMap, direction, isDark, bottomPaddingPx, topPaddingPx) {
         val map = naverMap ?: return@LaunchedEffect
         stopMarkers.forEach { it.map = null }
         stopMarkers.clear()
         direction ?: return@LaunchedEffect
-        map.setContentPadding(0, 0, 0, bottomPaddingPx)
+        map.setContentPadding(0, topPaddingPx, 0, bottomPaddingPx)
 
         stopMarkers += stopMarker(direction.origin, icons.origin, originCaption, isDark).apply { this.map = map }
         stopMarkers += stopMarker(direction.destination, icons.destination, destinationCaption, isDark)
@@ -231,6 +239,8 @@ private fun stopMarker(stop: ShuttleStop, image: OverlayImage, caption: String?,
         captionColor = (if (isDark) White else Black).toArgb()
         captionHaloColor = (if (isDark) Black else White).toArgb()
         isHideCollidedCaptions = false
+        // 정류장과 겹치는 지도 기본 심벌(POI 라벨)은 숨겨 정류장 이름이 묻히지 않게 한다.
+        isHideCollidedSymbols = true
     }
 
 /** 벡터 리소스를 지도 마커용 비트맵으로 한 번만 만들어 둔다. */
