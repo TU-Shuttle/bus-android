@@ -26,6 +26,8 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
@@ -189,7 +191,9 @@ fun ShuttleMap(
             val position = LatLng(bus.latitude, bus.longitude)
             val existing = busMarkers[bus.id]
             if (existing != null) {
-                existing.position = position
+                // 위치는 몇 초마다 오므로 순간이동 대신 다음 위치까지 미끄러지듯 옮긴다.
+                // 새 위치가 오면 이 효과가 다시 시작되며 지금 그려진 자리에서 이어 간다.
+                launch { existing.glideTo(position) }
                 return@forEach
             }
             // 좌표를 먼저 넣고 지도에 붙인다(좌표 없이 붙이면 SDK가 InvalidCoordinateException을 던진다).
@@ -205,6 +209,30 @@ fun ShuttleMap(
 }
 
 private val ShuttleStop.latLng: LatLng get() = LatLng(latitude, longitude)
+
+/** 위치 갱신 간격(약 5초)보다 조금 짧게 잡아 다음 위치가 오기 전에 도착하게 한다. */
+private const val GLIDE_MS = 4_500L
+
+/** 너무 멀리 떨어졌으면(재연결 등) 미끄러지지 않고 바로 옮긴다. */
+private const val GLIDE_MAX_METERS = 500.0
+
+private suspend fun Marker.glideTo(target: LatLng) {
+    val start = position
+    if (start.distanceTo(target) > GLIDE_MAX_METERS) {
+        position = target
+        return
+    }
+    val startNanos = withFrameNanos { it }
+    while (true) {
+        val elapsedMs = (withFrameNanos { it } - startNanos) / 1_000_000
+        val t = (elapsedMs.toDouble() / GLIDE_MS).coerceAtMost(1.0)
+        position = LatLng(
+            start.latitude + (target.latitude - start.latitude) * t,
+            start.longitude + (target.longitude - start.longitude) * t,
+        )
+        if (t >= 1.0) break
+    }
+}
 
 /** 지도 위 내 위치·버스보다 위에 그려 정류장이 가려지지 않게 한다. */
 private const val STOP_GLOBAL_Z = 300_001
