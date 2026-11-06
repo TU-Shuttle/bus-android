@@ -55,8 +55,14 @@
     <!-- 시간표 -->
     <string name="timetable_title">시간표</string>
     <string name="timetable_period">%1$s · %2$s</string>
-    <string name="timetable_hour">%1$d시</string>
-    <string name="timetable_notes">참고</string>
+    <string name="timetable_past_count">지난 출발 %1$d개</string>
+    <string name="timetable_this_shuttle">이번 셔틀</string>
+    <string name="timetable_running_now">지금 수시운행</string>
+    <string name="timetable_finished_today">오늘 운행이 끝났어요</string>
+    <string name="timetable_departing_now">곧 출발</string>
+    <string name="timetable_in_minutes">%1$d분 후</string>
+    <string name="timetable_in_hours">%1$d시간 후</string>
+    <string name="timetable_in_hours_minutes">%1$d시간 %2$d분 후</string>
     <string name="timetable_empty">이 요일에는 운행하지 않아요</string>
 
     <!-- 정보 -->
@@ -87,6 +93,4 @@
     <!-- 접근성 -->
     <string name="a11y_bus_marker">셔틀 버스</string>
     <string name="a11y_locate_me">내 위치로 이동</string>
-    <string name="a11y_has_note">안내 있음</string>
-    <string name="a11y_next_departure">다음 출발</string>
 </resources>

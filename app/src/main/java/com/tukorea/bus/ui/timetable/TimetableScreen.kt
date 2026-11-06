@@ -2,11 +2,15 @@ package com.tukorea.bus.ui.timetable
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
+import androidx.compose.material3.Icon
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,40 +18,31 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tukorea.bus.R
 import com.tukorea.bus.domain.model.DayType
-import com.tukorea.bus.domain.model.Departure
 import com.tukorea.bus.domain.model.ShuttleDirection
 import com.tukorea.bus.ui.common.BusButton
 import com.tukorea.bus.ui.common.DirectionPicker
 import com.tukorea.bus.ui.common.EmptyState
 import com.tukorea.bus.ui.common.RowDivider
-import com.tukorea.bus.ui.common.SectionLabel
 import com.tukorea.bus.ui.common.SegmentedControl
 import com.tukorea.bus.ui.common.formatMinute
 import com.tukorea.bus.ui.common.labelRes
@@ -55,11 +50,7 @@ import com.tukorea.bus.ui.theme.busColors
 
 private val DAY_TYPES = listOf(DayType.WEEKDAY, DayType.SATURDAY)
 private val Inset = 24.dp
-private val HourColumn = 56.dp
-private val MinuteWidth = 44.dp
-
-/** 목록 위쪽 고정 항목 수(제목, 노선 선택). 자동 스크롤 위치 계산에 쓴다. */
-private const val LEADING_ITEMS = 2
+private const val RELATIVE_LIMIT_MINUTES = 120
 
 @Composable
 fun TimetableRoute(viewModel: TimetableViewModel = hiltViewModel()) {
@@ -69,12 +60,13 @@ fun TimetableRoute(viewModel: TimetableViewModel = hiltViewModel()) {
         onSelectDayType = viewModel::selectDayType,
         onSelectDirection = viewModel::selectDirection,
         onRetry = viewModel::retry,
+        onTogglePast = viewModel::togglePast,
     )
 }
 
 /**
- * 시간대별 한 줄 시간표. 왼쪽에 시(時), 오른쪽에 분(分)만 적는 익숙한 버스 시간표 형식이다.
- * 오늘 시간표면 지난 시각은 흐리게, 다음 출발 하나만 검은 알약으로 강조하고 그 줄로 스크롤한다.
+ * 앞으로 탈 출발만 한 줄씩 크게 보여 주는 시간표(우버 탑승 목록처럼).
+ * 오늘 시간표면 남은 시간을 오른쪽에 붙이고, 지난 출발은 맨 위에 접어 둔다.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -83,17 +75,10 @@ fun TimetableScreen(
     onSelectDayType: (DayType) -> Unit,
     onSelectDirection: (ShuttleDirection) -> Unit,
     onRetry: () -> Unit,
+    onTogglePast: () -> Unit,
 ) {
     val listState = rememberLazyListState()
-    // 노선·요일을 바꿀 때만 맞춘다(15초마다 갱신되는 현재 시각 때문에 스크롤이 튀지 않게).
-    LaunchedEffect(state.selectedDirection, state.selectedDayType, state.isLoading) {
-        val focus = state.focusIndex
-        if (focus != null && focus >= 2) {
-            listState.scrollToItem(LEADING_ITEMS + focus - 1)
-        } else {
-            listState.scrollToItem(0)
-        }
-    }
+    LaunchedEffect(state.selectedDirection, state.selectedDayType) { listState.scrollToItem(0) }
 
     LazyColumn(
         state = listState,
@@ -134,27 +119,29 @@ fun TimetableScreen(
                     action = { BusButton(text = stringResource(R.string.action_retry), onClick = onRetry) },
                 )
             }
-            state.entries.isEmpty() -> item {
+            state.past.isEmpty() && state.upcoming.isEmpty() -> item {
                 EmptyState(title = stringResource(R.string.timetable_empty), body = "")
             }
             else -> {
-                val lastKey = state.entries.last().key
-                items(state.entries, key = { it.key }) { entry ->
-                    val divider = entry.key != lastKey
-                    when (entry) {
-                        is TimetableEntry.Hour -> HourRowItem(entry, divider)
-                        is TimetableEntry.OnDemand -> OnDemandRow(entry, divider)
+                if (state.past.isNotEmpty()) {
+                    item(key = "past-toggle") {
+                        PastToggle(count = state.past.size, expanded = state.showPast, onClick = onTogglePast)
+                    }
+                    if (state.showPast) {
+                        items(state.past, key = { "p-${it.key}" }) { DepartureRowItem(it) }
                     }
                 }
-                if (state.notes.isNotEmpty()) {
-                    item(key = "notes") {
-                        SectionLabel(
-                            modifier = Modifier.padding(horizontal = Inset),
-                            text = stringResource(R.string.timetable_notes),
+                if (state.upcoming.isEmpty()) {
+                    item(key = "finished") {
+                        Text(
+                            modifier = Modifier.padding(horizontal = Inset, vertical = 24.dp),
+                            text = stringResource(R.string.timetable_finished_today),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.busColors.textSecondary,
                         )
                     }
-                    items(state.notes, key = { "n-${it.minute}" }) { dep -> NoteRow(dep) }
                 }
+                items(state.upcoming, key = { "u-${it.key}" }) { DepartureRowItem(it) }
             }
         }
     }
@@ -189,149 +176,104 @@ private fun TitleRow(state: TimetableUiState, onSelectDayType: (DayType) -> Unit
     }
 }
 
-/** `9시 │ 00  20  40` 한 줄. */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun HourRowItem(row: TimetableEntry.Hour, divider: Boolean) {
+private fun PastToggle(count: Int, expanded: Boolean, onClick: () -> Unit) {
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(horizontal = Inset, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                modifier = Modifier.weight(1f),
+                text = stringResource(R.string.timetable_past_count, count),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.busColors.textSecondary,
+            )
+            Icon(
+                imageVector = if (expanded) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown,
+                contentDescription = null,
+                tint = MaterialTheme.busColors.textSecondary,
+            )
+        }
+        RowDivider(modifier = Modifier.padding(horizontal = Inset))
+    }
+}
+
+/**
+ * 출발 한 줄: 왼쪽 큰 시각, 오른쪽 남은 시간.
+ * 이번 셔틀은 아래에 "이번 셔틀"을 붙이고 남은 시간을 진하게, 지난 출발은 흐리게.
+ */
+@Composable
+private fun DepartureRowItem(row: DepartureRow) {
     val bus = MaterialTheme.busColors
+    val scheme = MaterialTheme.colorScheme
+    val dep = row.departure
+    val onDemandTitle = stringResource(R.string.home_on_demand_title)
+    val timeText = if (dep.isOnDemand) {
+        "${formatMinute(dep.minute)} ~ ${formatMinute(dep.endMinute ?: dep.minute)}"
+    } else {
+        formatMinute(dep.minute)
+    }
+    val caption = when {
+        row.isNext -> stringResource(R.string.timetable_this_shuttle)
+        else -> null
+    }
+    val note = dep.note?.takeUnless { it == onDemandTitle }
+    val trailing = when {
+        row.isRunningNow -> stringResource(R.string.timetable_running_now)
+        dep.isOnDemand -> onDemandTitle
+        // 두 시간 넘게 남은 출발까지 남은 시간을 붙이면 숫자만 늘어난다.
+        row.minutesUntil != null && row.minutesUntil < RELATIVE_LIMIT_MINUTES -> relativeTime(row.minutesUntil)
+        else -> null
+    }
+
     Column(modifier = Modifier.padding(horizontal = Inset)) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 12.dp),
-            verticalAlignment = Alignment.Top,
+                .heightIn(min = 72.dp)
+                .padding(vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            HourLabel(text = stringResource(R.string.timetable_hour, row.hour), dimmed = row.isPast)
-            FlowRow(
-                modifier = Modifier.weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(2.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                row.cells.forEach { MinuteCell(it) }
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = timeText,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = if (row.isPast) bus.textTertiary else scheme.onBackground,
+                )
+                if (caption != null) {
+                    Text(text = caption, style = MaterialTheme.typography.bodyMedium, color = scheme.onBackground)
+                }
+                if (note != null) {
+                    Text(text = note, style = MaterialTheme.typography.bodySmall, color = bus.textSecondary)
+                }
             }
-        }
-        if (divider) RowDivider()
-    }
-}
-
-@Composable
-private fun HourLabel(text: String, dimmed: Boolean) {
-    Box(modifier = Modifier.width(HourColumn).height(36.dp), contentAlignment = Alignment.CenterStart) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyLarge,
-            color = if (dimmed) MaterialTheme.busColors.textTertiary else MaterialTheme.busColors.textSecondary,
-        )
-    }
-}
-
-/** 분 하나. 다음 출발=검은 알약, 지난 시각=흐린 글자, 안내 있음=오른쪽 위 주황 점. */
-@Composable
-private fun MinuteCell(cell: TimeCell) {
-    val scheme = MaterialTheme.colorScheme
-    val bus = MaterialTheme.busColors
-    val minute = (cell.departure.minute % 60).toString().padStart(2, '0')
-    val description = listOfNotNull(
-        formatMinute(cell.departure.minute),
-        stringResource(R.string.a11y_next_departure).takeIf { cell.isNext },
-        stringResource(R.string.a11y_has_note).takeIf { cell.departure.note != null },
-    ).joinToString(", ")
-    val (container, content) = when {
-        cell.isNext -> scheme.primary to scheme.onPrimary
-        cell.isPast -> Color.Transparent to bus.textTertiary
-        else -> Color.Transparent to scheme.onBackground
-    }
-    Surface(
-        modifier = Modifier
-            .size(width = MinuteWidth, height = 36.dp)
-            .semantics { contentDescription = description },
-        shape = RoundedCornerShape(12.dp),
-        color = container,
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Text(
-                text = minute,
-                style = MaterialTheme.typography.titleMedium,
-                // 지난 시각은 굵기도 낮춰 앞으로 탈 시각과 경쟁하지 않게 한다.
-                fontWeight = if (cell.isPast) FontWeight.Normal else null,
-                color = content,
-            )
-            if (cell.departure.note != null) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(top = 6.dp, end = 6.dp)
-                        .size(5.dp)
-                        .background(bus.warning, CircleShape),
+            if (trailing != null) {
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = trailing,
+                    style = if (row.isNext) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyLarge,
+                    fontWeight = if (row.isNext) FontWeight.Bold else null,
+                    color = if (row.isNext) scheme.onBackground else bus.textSecondary,
                 )
             }
         }
-    }
-}
-
-/** `17시 │ 00 ~ 18:00 수시운행` 한 줄. 시작 분은 다른 줄의 분과 같은 칸에 맞춘다. */
-@Composable
-private fun OnDemandRow(entry: TimetableEntry.OnDemand, divider: Boolean) {
-    val bus = MaterialTheme.busColors
-    val departure = entry.departure
-    val onDemandTitle = stringResource(R.string.home_on_demand_title)
-    val color = if (entry.isPast) bus.textTertiary else MaterialTheme.colorScheme.onBackground
-    Column(modifier = Modifier.padding(horizontal = Inset)) {
-        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp), verticalAlignment = Alignment.Top) {
-            HourLabel(text = stringResource(R.string.timetable_hour, departure.minute / 60), dimmed = entry.isPast)
-            Column(modifier = Modifier.weight(1f)) {
-                Row(modifier = Modifier.height(36.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.width(MinuteWidth), contentAlignment = Alignment.Center) {
-                        Text(
-                            text = (departure.minute % 60).toString().padStart(2, '0'),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = color,
-                        )
-                    }
-                    Text(
-                        text = "~ ${formatMinute(departure.endMinute ?: departure.minute)}",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = color,
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = onDemandTitle, style = MaterialTheme.typography.bodyMedium, color = bus.textSecondary)
-                }
-                val note = departure.note?.takeUnless { it == onDemandTitle }
-                if (note != null) {
-                    Text(
-                        modifier = Modifier.padding(start = 12.dp),
-                        text = note,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = bus.textSecondary,
-                    )
-                }
-            }
-        }
-        if (divider) RowDivider()
+        RowDivider()
     }
 }
 
 @Composable
-private fun NoteRow(departure: Departure) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Inset, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(6.dp)
-                .background(MaterialTheme.busColors.warning, CircleShape),
-        )
-        Spacer(modifier = Modifier.width(10.dp))
-        Text(text = formatMinute(departure.minute), style = MaterialTheme.typography.titleSmall)
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = departure.note.orEmpty(),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.busColors.textSecondary,
-        )
+private fun relativeTime(minutes: Int): String {
+    val hours = minutes / 60
+    val rest = minutes % 60
+    return when {
+        minutes == 0 -> stringResource(R.string.timetable_departing_now)
+        hours == 0 -> stringResource(R.string.timetable_in_minutes, minutes)
+        rest == 0 -> stringResource(R.string.timetable_in_hours, hours)
+        else -> stringResource(R.string.timetable_in_hours_minutes, hours, rest)
     }
 }
 

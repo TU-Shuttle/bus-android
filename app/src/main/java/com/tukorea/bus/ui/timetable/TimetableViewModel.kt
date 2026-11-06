@@ -35,6 +35,7 @@ class TimetableViewModel @Inject constructor(
         val refreshFailed: Boolean = false,
         val dayType: DayType? = null,
         val direction: ShuttleDirection? = null,
+        val showPast: Boolean = false,
     )
 
     private val local = MutableStateFlow(Local())
@@ -45,11 +46,15 @@ class TimetableViewModel @Inject constructor(
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TimetableUiState())
 
     fun selectDayType(dayType: DayType) {
-        local.update { it.copy(dayType = dayType, direction = null) }
+        local.update { it.copy(dayType = dayType, direction = null, showPast = false) }
+    }
+
+    fun togglePast() {
+        local.update { it.copy(showPast = !it.showPast) }
     }
 
     fun selectDirection(direction: ShuttleDirection) {
-        local.update { it.copy(direction = direction) }
+        local.update { it.copy(direction = direction, showPast = false) }
     }
 
     fun retry() {
@@ -84,32 +89,21 @@ class TimetableViewModel @Inject constructor(
             .sortedBy { it.minute }
 
         val now = moment.minuteOfDay
-        val fixed = rows.filterNot { it.isOnDemand }
-        val nextMinute = if (isToday) fixed.firstOrNull { it.minute >= now }?.minute else null
-
-        val hours = fixed.groupBy { it.minute / 60 }.map { (hour, departures) ->
-            TimetableEntry.Hour(
-                hour = hour,
-                cells = departures.map { dep ->
-                    TimeCell(departure = dep, isPast = isToday && dep.minute < now, isNext = dep.minute == nextMinute)
-                },
+        val nextMinute = if (isToday) {
+            rows.firstOrNull { (it.endMinute ?: it.minute) >= now }?.minute
+        } else {
+            null
+        }
+        val all = rows.map { dep ->
+            val isPast = isToday && (dep.endMinute ?: dep.minute) < now
+            DepartureRow(
+                departure = dep,
+                isPast = isPast,
+                isNext = dep.minute == nextMinute,
+                isRunningNow = isToday && dep.isOnDemand && dep.minute <= now && !isPast,
+                minutesUntil = if (isToday && !isPast) (dep.minute - now).coerceAtLeast(0) else null,
             )
         }
-        val onDemand = rows.filter { it.isOnDemand }.map { dep ->
-            TimetableEntry.OnDemand(dep, isPast = isToday && (dep.endMinute ?: dep.minute) < now)
-        }
-        val entries = (hours + onDemand).sortedBy {
-            when (it) {
-                is TimetableEntry.Hour -> it.hour * 60
-                is TimetableEntry.OnDemand -> it.departure.minute
-            }
-        }
-        val focusIndex = if (isToday) entries.indexOfFirst { entry ->
-            when (entry) {
-                is TimetableEntry.Hour -> entry.cells.any { !it.isPast }
-                is TimetableEntry.OnDemand -> !entry.isPast
-            }
-        }.takeIf { it >= 0 } else null
 
         return TimetableUiState(
             isLoading = false,
@@ -118,9 +112,9 @@ class TimetableViewModel @Inject constructor(
             selectedDayType = dayType,
             directions = directions,
             selectedDirection = direction,
-            entries = entries,
-            focusIndex = focusIndex,
-            notes = fixed.filter { it.note != null },
+            past = all.filter { it.isPast },
+            showPast = local.showPast,
+            upcoming = all.filterNot { it.isPast },
         )
     }
 
