@@ -58,6 +58,8 @@
     <string name="bus_detail_arriving">곧 %1$s 도착</string>
     <string name="bus_detail_off_route">이 노선 밖을 달리고 있어요</string>
     <string name="bus_detail_remaining">남은 거리</string>
+    <string name="bus_detail_final">%1$s까지</string>
+    <string name="bus_detail_minutes">약 %1$d분</string>
     <string name="bus_detail_speed">현재 속도</string>
     <string name="bus_detail_speed_value">%1$dkm/h</string>
     <string name="bus_detail_unknown">확인 중</string>
