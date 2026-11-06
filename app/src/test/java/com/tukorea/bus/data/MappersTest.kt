@@ -3,6 +3,7 @@ package com.tukorea.bus.data
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.tukorea.bus.data.model.ApiEnvelope
+import com.tukorea.bus.data.model.ScheduleDto
 import com.tukorea.bus.data.model.TimetableDto
 import com.tukorea.bus.data.model.toDomain
 import com.tukorea.bus.data.model.toMinuteOfDay
@@ -72,5 +73,16 @@ class MappersTest {
         assertEquals(1337, "22:17".toMinuteOfDay())
         assertNull("25:00".toMinuteOfDay())
         assertNull("noon".toMinuteOfDay())
+    }
+
+    @Test
+    fun `요일별_운행_요일을_ISO_번호로_바꾼다`() {
+        val dto = ScheduleDto("WEEKDAY", "CAMPUS2_TO_OIDO_STATION", "17:40:00", null, null, listOf("WEDNESDAY", "monday", "NOPE"))
+
+        val departure = dto.toDomain()!!
+
+        assertEquals(com.tukorea.bus.domain.model.ShuttleDirection.CAMPUS2_TO_OIDO_STATION, departure.direction)
+        assertEquals(setOf(1, 3), departure.daysOfWeek)
+        assertEquals(null, ScheduleDto("WEEKDAY", "STATION_TO_CAMPUS1", "09:00", null, null).toDomain()!!.daysOfWeek)
     }
 }

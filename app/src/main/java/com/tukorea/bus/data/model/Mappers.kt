@@ -30,8 +30,14 @@ fun ScheduleDto.toDomain(): Departure? {
         minute = minute,
         endMinute = endTime?.toMinuteOfDay(),
         note = note?.cleanNote(),
+        daysOfWeek = daysOfWeek?.mapNotNull(::isoDayOf)?.toSet()?.takeIf { it.isNotEmpty() },
     )
 }
+
+private val ISO_DAYS = listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY")
+
+/** "MONDAY" → 1 … "SUNDAY" → 7. 모르는 값은 버린다. */
+private fun isoDayOf(name: String): Int? = ISO_DAYS.indexOf(name.uppercase()).takeIf { it >= 0 }?.plus(1)
 
 /** 원본 PDF의 강조 기호(★, ※)와 겹친 공백을 걷어 화면에 바로 쓸 수 있게 한다. */
 private fun String.cleanNote(): String? =

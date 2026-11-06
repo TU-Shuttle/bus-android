@@ -46,6 +46,7 @@ import com.tukorea.bus.ui.common.RowDivider
 import com.tukorea.bus.ui.common.SegmentedControl
 import com.tukorea.bus.ui.common.formatMinute
 import com.tukorea.bus.ui.common.labelRes
+import com.tukorea.bus.ui.common.weekdaysLabel
 import com.tukorea.bus.ui.theme.busColors
 
 private val DAY_TYPES = listOf(DayType.WEEKDAY, DayType.SATURDAY)
@@ -217,10 +218,11 @@ private fun DepartureRowItem(row: DepartureRow) {
     } else {
         formatMinute(dep.minute)
     }
-    val caption = when {
-        row.isNext -> stringResource(R.string.timetable_this_shuttle)
-        else -> null
-    }
+    val days = dep.daysOfWeek?.let { stringResource(R.string.timetable_only_days, weekdaysLabel(it)) }
+    val caption = listOfNotNull(
+        stringResource(R.string.timetable_this_shuttle).takeIf { row.isNext },
+        days,
+    ).joinToString(" · ").ifEmpty { null }
     val note = dep.note?.takeUnless { it == onDemandTitle }
     val trailing = when {
         row.isRunningNow -> stringResource(R.string.timetable_running_now)

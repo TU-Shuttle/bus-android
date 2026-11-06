@@ -19,6 +19,8 @@ data class ScheduleDto(
     val departTime: String?,
     val endTime: String?,
     val note: String?,
+    /** "MONDAY" … 요일별 운행일 때만 온다. */
+    val daysOfWeek: List<String>? = null,
 )
 
 data class LiveBusDto(

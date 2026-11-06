@@ -15,4 +15,7 @@ enum class ShuttleStop(val latitude: Double, val longitude: Double) {
 
     /** 제2캠퍼스(시흥 배곧) 정류장. */
     CAMPUS2(37.32802, 126.6884),
+
+    /** 오이도역. 제2캠퍼스 17:40 출발 셔틀의 종점(본교를 거치지 않음). */
+    OIDO_STATION(37.36236, 126.73871),
 }

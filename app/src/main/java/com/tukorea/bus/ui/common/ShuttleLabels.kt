@@ -14,6 +14,7 @@ fun ShuttleStop.nameRes(): Int = when (this) {
     ShuttleStop.CAMPUS1 -> R.string.stop_campus1
     ShuttleStop.CAMPUS1_WEST_GATE -> R.string.stop_campus1_west_gate
     ShuttleStop.CAMPUS2 -> R.string.stop_campus2
+    ShuttleStop.OIDO_STATION -> R.string.stop_oido_station
 }
 
 @StringRes
@@ -22,6 +23,7 @@ fun ShuttleStop.boardingRes(): Int = when (this) {
     ShuttleStop.CAMPUS1 -> R.string.stop_boarding_campus1
     ShuttleStop.CAMPUS1_WEST_GATE -> R.string.stop_boarding_campus1_west_gate
     ShuttleStop.CAMPUS2 -> R.string.stop_boarding_campus2
+    ShuttleStop.OIDO_STATION -> R.string.stop_oido_station
 }
 
 @StringRes
@@ -40,6 +42,13 @@ fun ShuttleDirection.label(): String {
     val from = stringResource(origin.nameRes())
     val to = stringResource(destination.nameRes())
     return stringResource(if (isVia) R.string.direction_via_label else R.string.direction_label, from, to)
+}
+
+/** {1, 3} → "월·수" */
+@Composable
+fun weekdaysLabel(isoDays: Set<Int>): String {
+    val names = stringResource(R.string.weekday_short_names).split(",")
+    return isoDays.sorted().joinToString("·") { names[it - 1] }
 }
 
 /** 자정부터의 분 → "09:40" */

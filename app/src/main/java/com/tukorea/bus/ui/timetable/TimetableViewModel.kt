@@ -84,8 +84,10 @@ class TimetableViewModel @Inject constructor(
             ?: suggestDirection(timetable, moment)?.takeIf { it in directions }
             ?: directions.firstOrNull()
         val isToday = moment.dayType == dayType
+        // 오늘 시간표는 오늘 요일에 실제로 운행하는 것만(요일별 운행 반영), 다른 요일을 볼 땐 전부 보여 준다.
         val rows = timetable.departures
             .filter { it.dayType == dayType && it.direction == direction }
+            .filter { !isToday || it.runsOn(moment.isoDayOfWeek) }
             .sortedBy { it.minute }
 
         val now = moment.minuteOfDay

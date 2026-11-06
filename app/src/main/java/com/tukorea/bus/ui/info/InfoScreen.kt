@@ -37,6 +37,7 @@ import com.tukorea.bus.ui.theme.busColors
 
 private const val SCHOOL_SHUTTLE_URL = "https://tukorea.ac.kr/tukorea/1136/subview.do"
 private const val CONTACT_TEL = "tel:0318041 0082"
+private const val EARLY_CONTACT_TEL = "tel:03180411462"
 
 @Composable
 fun InfoRoute(viewModel: InfoViewModel = hiltViewModel()) {
@@ -64,6 +65,8 @@ fun InfoScreen(state: InfoUiState) {
         InfoRow(stringResource(R.string.stop_campus1_west_gate), stringResource(R.string.info_stop_west_gate_body))
         RowDivider()
         InfoRow(stringResource(R.string.stop_campus2), stringResource(R.string.info_stop_campus2_body))
+        RowDivider()
+        InfoRow(stringResource(R.string.stop_oido_station), stringResource(R.string.info_stop_oido_body))
 
         SectionLabel(text = stringResource(R.string.info_section_notice))
         Column(
@@ -81,6 +84,13 @@ fun InfoScreen(state: InfoUiState) {
             body = stringResource(R.string.info_contact_phone),
             icon = Icons.Outlined.Call,
             onClick = { uriHandler.openUri(CONTACT_TEL.replace(" ", "")) },
+        )
+        RowDivider()
+        ActionRow(
+            title = stringResource(R.string.info_contact_early_name),
+            body = stringResource(R.string.info_contact_early_phone),
+            icon = Icons.Outlined.Call,
+            onClick = { uriHandler.openUri(EARLY_CONTACT_TEL) },
         )
 
         SectionLabel(text = stringResource(R.string.info_section_source))

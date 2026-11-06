@@ -17,7 +17,7 @@ class GetUpcomingDeparturesUseCase @Inject constructor() {
     ): UpcomingDepartures {
         val dayType = now.dayType ?: return UpcomingDepartures.NoService
         val today = timetable.departures
-            .filter { it.dayType == dayType && it.direction == direction }
+            .filter { it.dayType == dayType && it.direction == direction && it.runsOn(now.isoDayOfWeek) }
             .sortedBy { it.minute }
         if (today.isEmpty()) return UpcomingDepartures.NoService
 

@@ -80,4 +80,23 @@ class GetUpcomingDeparturesUseCaseTest {
         assertEquals(false, timetable.isValidOn("2026-12-23"))
         assertEquals(false, timetable.isValidOn("2026-08-31"))
     }
+
+    @Test
+    fun `요일별_운행은_그_요일에만_다음_셔틀로_본다`() {
+        val via = ShuttleDirection.CAMPUS2_TO_STATION_VIA_CAMPUS1
+        val extra = Timetable(
+            title = "2학기", validFrom = null, validTo = null, fetchedAt = null,
+            departures = listOf(
+                Departure(via, DayType.WEEKDAY, minute = 16 * 60 + 30, daysOfWeek = setOf(2, 3)),
+                Departure(via, DayType.WEEKDAY, minute = 17 * 60 + 30, daysOfWeek = setOf(3, 5)),
+            ),
+        )
+
+        val friday = useCase(extra, via, ServiceMoment("2026-11-06", isoDayOfWeek = 5, minuteOfDay = 16 * 60))
+        assertEquals(listOf(17 * 60 + 30), (friday as UpcomingDepartures.Scheduled).next.map { it.minute })
+
+        val thursday = useCase(extra, via, ServiceMoment("2026-11-05", isoDayOfWeek = 4, minuteOfDay = 16 * 60))
+        assertEquals(UpcomingDepartures.NoService, thursday)
+        assertEquals(emptyList<ShuttleDirection>(), extra.directionsOn(DayType.WEEKDAY, isoDayOfWeek = 4))
+    }
 }

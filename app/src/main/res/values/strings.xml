@@ -11,6 +11,9 @@
     <string name="stop_campus1">본교</string>
     <string name="stop_campus1_west_gate">본교 서문</string>
     <string name="stop_campus2">제2캠퍼스</string>
+    <string name="stop_oido_station">오이도역</string>
+    <string name="weekday_short_names">월,화,수,목,금,토,일</string>
+    <string name="timetable_only_days">%1$s만 운행</string>
     <string name="stop_boarding_jeongwang_station">정왕역 꽃집 앞</string>
     <string name="stop_boarding_campus1">본교 산융관 앞</string>
     <string name="stop_boarding_campus1_west_gate">본교 운동장 옆 서문 정류장</string>
@@ -90,6 +93,9 @@
     <string name="info_stop_campus1_body">산융관 앞 정류장이에요. 정왕역·제2캠퍼스 방향 승차장이 같아요.</string>
     <string name="info_stop_west_gate_body">운동장 옆(서문) 버스정류장이에요. 정왕역과 제2캠퍼스를 잇는 경유 노선이 여기서 타고 내려요.</string>
     <string name="info_stop_campus2_body">본교와 정왕역으로 가는 셔틀이 출발해요.</string>
+    <string name="info_stop_oido_body">제2캠퍼스 17:40 출발 셔틀이 본교를 거치지 않고 여기로 바로 가요.</string>
+    <string name="info_contact_early_name">조기취업학부 교학팀 (제2캠퍼스 셔틀)</string>
+    <string name="info_contact_early_phone">031-8041-1462</string>
     <string name="info_section_notice">이용 안내</string>
     <string name="info_notice_crowded">혼잡할 때는 외부인 탑승이 제한될 수 있어요.</string>
     <string name="info_notice_drink">음료를 들고 타지 마세요.</string>

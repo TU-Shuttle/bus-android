@@ -117,7 +117,7 @@ class HomeViewModel @Inject constructor(
             )
         }
 
-        val directions = moment.dayType?.let(timetable::directionsOn).orEmpty()
+        val directions = moment.dayType?.let { timetable.directionsOn(it, moment.isoDayOfWeek) }.orEmpty()
         val selected = local.selected?.takeIf { it in directions } ?: suggestDirection(timetable, moment)
         val route = selected?.let(routes::routeOf)
         val tracking = liveList.associate { bus -> bus.id to trackBus(bus, history.previous[bus.id], route) }

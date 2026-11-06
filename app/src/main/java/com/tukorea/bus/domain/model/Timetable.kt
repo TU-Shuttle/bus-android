@@ -20,8 +20,11 @@ data class Timetable(
         return true
     }
 
-    fun directionsOn(dayType: DayType): List<ShuttleDirection> =
+    /** [isoDayOfWeek]를 주면 그 요일에 실제로 운행하는 방향만 고른다(요일별 운행 반영). */
+    fun directionsOn(dayType: DayType, isoDayOfWeek: Int? = null): List<ShuttleDirection> =
         ShuttleDirection.entries.filter { direction ->
-            departures.any { it.dayType == dayType && it.direction == direction }
+            departures.any {
+                it.dayType == dayType && it.direction == direction && (isoDayOfWeek == null || it.runsOn(isoDayOfWeek))
+            }
         }
 }
