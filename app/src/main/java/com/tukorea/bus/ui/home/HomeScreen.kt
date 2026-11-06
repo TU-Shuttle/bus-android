@@ -1,6 +1,7 @@
 package com.tukorea.bus.ui.home
 
 import android.Manifest
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -35,6 +36,9 @@ fun HomeRoute(
     }
 
 
+    // 버스를 따라가는 중이면 뒤로 가기로 먼저 따라가기를 끝낸다.
+    BackHandler(enabled = state.selectedBus != null, onBack = viewModel::clearSelectedBus)
+
     var sheetHeight by remember { mutableStateOf(0.dp) }
     val density = LocalDensity.current
 
@@ -45,6 +49,11 @@ fun HomeRoute(
             buses = state.liveBuses,
             showMyLocation = locationPermission.allPermissionsGranted,
             bottomPadding = sheetHeight,
+            route = state.route,
+            headings = state.headings,
+            selectedBusId = state.selectedBus?.bus?.id,
+            onBusClick = viewModel::selectBus,
+            onMapClick = viewModel::clearSelectedBus,
         )
 
         HomeSheet(
@@ -56,6 +65,7 @@ fun HomeRoute(
                 onSelectDirection = viewModel::selectDirection,
                 onOpenTimetable = onOpenTimetable,
                 onRetry = viewModel::refresh,
+                onCloseBus = viewModel::clearSelectedBus,
             ),
         )
     }

@@ -33,7 +33,7 @@ class LiveBusRepositoryImpl @Inject constructor(
     }
 
     private companion object {
-        const val POLL_MS = 5_000L
+        const val POLL_MS = 2_000L
         const val RETRY_MS = 15_000L
     }
 }

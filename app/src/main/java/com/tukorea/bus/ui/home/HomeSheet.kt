@@ -47,6 +47,7 @@ data class HomeSheetCallbacks(
     val onSelectDirection: (ShuttleDirection) -> Unit,
     val onOpenTimetable: () -> Unit,
     val onRetry: () -> Unit,
+    val onCloseBus: () -> Unit = {},
 )
 
 @Composable
@@ -62,7 +63,12 @@ fun HomeSheet(
         shadowElevation = 8.dp,
     ) {
         Column(modifier = Modifier.padding(top = 20.dp, bottom = 16.dp)) {
+            val selectedBus = state.selectedBus
             when {
+                selectedBus != null -> {
+                    BusDetailBlock(tracking = selectedBus, onClose = callbacks.onCloseBus)
+                    return@Column
+                }
                 state.isLoading -> LoadingBlock()
                 state.loadFailed -> NoTimetableBlock(onRetry = callbacks.onRetry)
                 else -> ScheduleBlock(state, callbacks)
@@ -282,6 +288,14 @@ private fun LiveRow(state: HomeUiState, modifier: Modifier = Modifier) {
     ) {
         StatusDot(color = if (running > 0) bus.success else bus.textTertiary, pulsing = running > 0)
         Text(text = text, style = MaterialTheme.typography.bodyMedium)
+        if (state.liveBuses.isNotEmpty()) {
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = stringResource(R.string.live_tap_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = bus.textTertiary,
+            )
+        }
     }
 }
 

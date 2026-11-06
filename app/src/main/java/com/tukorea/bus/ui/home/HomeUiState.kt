@@ -1,6 +1,8 @@
 package com.tukorea.bus.ui.home
 
+import com.tukorea.bus.domain.model.BusTracking
 import com.tukorea.bus.domain.model.Departure
+import com.tukorea.bus.domain.model.ShuttleRoute
 import com.tukorea.bus.domain.model.LiveBus
 import com.tukorea.bus.domain.model.LiveBusStatus
 import com.tukorea.bus.domain.model.ShuttleDirection
@@ -18,6 +20,12 @@ data class HomeUiState(
     val outOfPeriod: String? = null,
     val liveBuses: List<LiveBus> = emptyList(),
     val liveUnavailable: Boolean = false,
+    /** 고른 노선의 도로 경로. 지도에 선으로 그린다. */
+    val route: ShuttleRoute? = null,
+    /** 버스별 진행 방향(°). 지도 마커의 방향 화살표에 쓴다. */
+    val headings: Map<String, Double> = emptyMap(),
+    /** 지도에서 누른 버스. 있으면 시트가 그 버스의 운행 정보로 바뀌고 지도가 버스를 따라간다. */
+    val selectedBus: BusTracking? = null,
 ) {
     val nextDeparture: Departure?
         get() = (upcoming as? UpcomingDepartures.Scheduled)?.next?.firstOrNull()

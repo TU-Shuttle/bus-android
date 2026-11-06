@@ -46,6 +46,24 @@
     <string name="home_out_of_period">시간표 적용 기간(%1$s)이 아니에요. 방학 중엔 운행이 다를 수 있어요.</string>
     <string name="live_running">운행 중 %1$d대</string>
     <string name="live_waiting">대기 %1$d대</string>
+    <string name="live_tap_hint">버스를 누르면 따라가요</string>
+    <string name="bus_detail_running">운행 중</string>
+    <string name="bus_detail_waiting">잠시 대기 중</string>
+    <string name="bus_detail_stopped">운행 종료</string>
+    <string name="bus_detail_eta">%1$s까지 약 %2$d분</string>
+    <string name="bus_detail_arriving">곧 %1$s 도착</string>
+    <string name="bus_detail_off_route">이 노선 밖을 달리고 있어요</string>
+    <string name="bus_detail_remaining">남은 거리</string>
+    <string name="bus_detail_speed">현재 속도</string>
+    <string name="bus_detail_speed_value">%1$dkm/h</string>
+    <string name="bus_detail_unknown">확인 중</string>
+    <string name="bus_detail_updated">위치 갱신</string>
+    <string name="bus_detail_just_now">방금</string>
+    <string name="bus_detail_seconds_ago">%1$d초 전</string>
+    <string name="bus_detail_meters">%1$dm</string>
+    <string name="bus_detail_km">%1$skm</string>
+    <string name="bus_detail_estimate_note">도착 시간은 지금 속도로 계산한 어림값이에요.</string>
+    <string name="action_close">닫기</string>
     <string name="live_none">지금 운행 중인 버스가 없어요</string>
     <string name="live_unavailable">실시간 위치를 불러오지 못했어요</string>
     <string name="home_no_timetable_title">시간표를 불러오지 못했어요</string>
@@ -83,6 +101,7 @@
     <string name="info_source_body">학교 홈페이지 셔틀버스 시간표를 서버가 매일 확인해 반영해요.</string>
     <string name="info_source_open">학교 홈페이지에서 보기</string>
     <string name="info_source_updated">마지막 확인 %1$s</string>
+    <string name="info_route_attribution">지도 위 노선 경로는 OpenStreetMap 도로 데이터로 만든 근사값이에요. © OpenStreetMap 기여자</string>
     <string name="info_version">버전 %1$s</string>
 
     <!-- 오류 -->

@@ -98,6 +98,12 @@ fun InfoScreen(state: InfoUiState) {
 
         Text(
             modifier = Modifier.padding(top = 32.dp),
+            text = stringResource(R.string.info_route_attribution),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.busColors.textTertiary,
+        )
+        Text(
+            modifier = Modifier.padding(top = 4.dp),
             text = stringResource(R.string.info_version, BuildConfig.VERSION_NAME),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.busColors.textTertiary,
