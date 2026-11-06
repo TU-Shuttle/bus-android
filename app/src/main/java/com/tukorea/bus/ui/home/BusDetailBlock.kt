@@ -59,7 +59,8 @@ fun BusDetailBlock(tracking: BusTracking, onClose: () -> Unit, modifier: Modifie
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 modifier = Modifier.weight(1f),
-                text = stringResource(statusRes),
+                text = live.number?.let { stringResource(R.string.bus_detail_with_number, it, stringResource(statusRes)) }
+                    ?: stringResource(statusRes),
                 style = MaterialTheme.typography.labelLarge,
                 color = bus.textSecondary,
             )

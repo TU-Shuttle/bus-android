@@ -12,4 +12,11 @@ data class LiveBus(
     val direction: ShuttleDirection? = null,
 ) {
     fun isOn(selected: ShuttleDirection?): Boolean = direction == null || selected == null || direction == selected
+
+    /** 기사 앱에서 정한 호차 번호("bus-3" → 3). 형식이 다르면 null. */
+    val number: Int? get() = NUMBER_ID.matchEntire(id)?.groupValues?.get(1)?.toIntOrNull()
+
+    private companion object {
+        val NUMBER_ID = Regex("bus-0*(\\d{1,2})")
+    }
 }

@@ -50,6 +50,7 @@
     <string name="live_running">운행 중 %1$d대</string>
     <string name="live_waiting">대기 %1$d대</string>
     <string name="live_tap_hint">버스를 누르면 따라가요</string>
+    <string name="bus_detail_with_number">%1$d호차 · %2$s</string>
     <string name="bus_detail_running">운행 중</string>
     <string name="bus_detail_waiting">잠시 대기 중</string>
     <string name="bus_detail_stopped">운행 종료</string>
