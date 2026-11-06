@@ -11,6 +11,8 @@ import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
@@ -63,32 +65,37 @@ fun ShuttleNavHost(navController: NavHostController, modifier: Modifier = Modifi
 
 @Composable
 fun ShuttleBottomBar(currentRoute: String?, onSelect: (Destination) -> Unit) {
-    NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
-        Destination.entries.forEach { destination ->
-            val selected = currentRoute == destination.route
-            NavigationBarItem(
-                selected = selected,
-                onClick = { onSelect(destination) },
-                icon = {
-                    Icon(
-                        imageVector = if (selected) destination.selectedIcon else destination.icon,
-                        contentDescription = null,
-                    )
-                },
-                label = {
-                    Text(
-                        text = stringResource(destination.labelRes),
-                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                    )
-                },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = MaterialTheme.colorScheme.onSurface,
-                    selectedTextColor = MaterialTheme.colorScheme.onSurface,
-                    unselectedIconColor = MaterialTheme.busColors.textTertiary,
-                    unselectedTextColor = MaterialTheme.busColors.textTertiary,
-                    indicatorColor = Color.Transparent,
-                ),
-            )
+    // 흰 화면과 흰 탭바가 붙어 경계가 사라지지 않게 얇은 선을 둔다.
+    Column {
+        HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
+        NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
+            Destination.entries.forEach { destination ->
+                val selected = currentRoute == destination.route
+                NavigationBarItem(
+                    selected = selected,
+                    onClick = { onSelect(destination) },
+                    icon = {
+                        Icon(
+                            imageVector = if (selected) destination.selectedIcon else destination.icon,
+                            contentDescription = null,
+                        )
+                    },
+                    label = {
+                        Text(
+                            text = stringResource(destination.labelRes),
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                        )
+                    },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = MaterialTheme.colorScheme.onSurface,
+                        selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                        // 회색 3단계는 흰 바탕에서 대비가 2:1 정도라 탭 글자로는 너무 흐리다.
+                        unselectedIconColor = MaterialTheme.busColors.textSecondary,
+                        unselectedTextColor = MaterialTheme.busColors.textSecondary,
+                        indicatorColor = Color.Transparent,
+                    ),
+                )
+            }
         }
     }
 }
